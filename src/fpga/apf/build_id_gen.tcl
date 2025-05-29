@@ -101,7 +101,6 @@ proc generateBuildID_Verilog {} {
 	#post_message "Time:             $buildTime"
 }
 
-
 proc generateBuildID_MIF {} {
 	
 	# Get the timestamp (see: http://www.altera.com/support/examples/tcl/tcl-date-time-stamp.html)

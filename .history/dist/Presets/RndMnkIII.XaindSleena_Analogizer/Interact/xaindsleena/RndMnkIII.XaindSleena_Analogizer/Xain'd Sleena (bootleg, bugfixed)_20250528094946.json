@@ -1,0 +1,281 @@
+{
+    "interact": {
+        "magic": "APF_VER_1",
+        "variables": [
+            {
+                "name": "Reset Core",
+                "id": 1,
+                "type": "action",
+                "enabled": true,
+                "address": "0xF0000000",
+                "value": 1
+            },
+            {
+                "name": "DIP",
+                "id": 1000,
+                "type": "number_u32",
+                "enabled": false,
+                "address": "0xF1000000"
+            },
+            {
+                "name": "Coin B",
+                "port": "DSW",
+                "id": 100,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFFFC",
+                "options": [
+                    {
+                        "name": "1 Coin/1 Credit",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "1 Coin/2 Credits",
+                        "value": "0x00000001"
+                    },
+                    {
+                        "name": "1 Coin/3 Credits",
+                        "value": "0x00000002"
+                    },
+                    {
+                        "name": "2 Coins/1 Credit",
+                        "value": "0x00000003"
+                    }
+                ]
+            },
+            {
+                "name": "Coin A",
+                "port": "DSW",
+                "id": 101,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFFF3",
+                "options": [
+                    {
+                        "name": "1 Coin/1 Credit",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "1 Coin/2 Credits",
+                        "value": "0x00000004"
+                    },
+                    {
+                        "name": "1 Coin/3 Credits",
+                        "value": "0x00000008"
+                    },
+                    {
+                        "name": "2 Coins/1 Credit",
+                        "value": "0x0000000C"
+                    }
+                ]
+            },
+            {
+                "name": "Demo Sounds",
+                "port": "DSW",
+                "id": 102,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 1,
+                "mask": "0xFFFFFFEF",
+                "options": [
+                    {
+                        "name": "Off",
+                        "value": "0x00000010"
+                    },
+                    {
+                        "name": "On",
+                        "value": "0x00000000"
+                    }
+                ]
+            },
+            {
+                "name": "Allow Continue",
+                "port": "DSW",
+                "id": 103,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 1,
+                "mask": "0xFFFFFFDF",
+                "options": [
+                    {
+                        "name": "No",
+                        "value": "0x00000020"
+                    },
+                    {
+                        "name": "Yes",
+                        "value": "0x00000000"
+                    }
+                ]
+            },
+            {
+                "name": "Cabinet",
+                "port": "DSW",
+                "id": 104,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 1,
+                "mask": "0xFFFFFBF",
+                "options": [
+                    {
+                        "name": "Cocktail",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "Upright",
+                        "value": "0x00000040"
+                    }
+                ]
+            },
+            {
+                "name": "Flip Screen",
+                "port": "DSW",
+                "id": 105,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFF7F",
+                "options": [
+                    {
+                        "name": "Off",
+                        "value": "0x00000080"
+                    },
+                    {
+                        "name": "On",
+                        "value": "0x00000000"
+                    }
+                ]
+            },
+            {
+                "name": "Difficulty",
+                "port": "DSW",
+                "id": 106,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFCFF",
+                "options": [
+                    {
+                        "name": "Easy",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "Hard",
+                        "value": "0x00000200"
+                    },
+                    {
+                        "name": "Hardest",
+                        "value": "0x00000300"
+                    },
+                    {
+                        "name": "Normal",
+                        "value": "0x00000100"
+                    }
+                ]
+            },
+            {
+                "name": "Game Time",
+                "port": "DSW",
+                "id": 107,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 2,
+                "mask": "0xFFFFF3FF",
+                "options": [
+                    {
+                        "name": "Fast",
+                        "value": "0x00000800"
+                    },
+                    {
+                        "name": "Normal",
+                        "value": "0x00000400"
+                    },
+                    {
+                        "name": "Slow",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "Very Fast",
+                        "value": "0x00000C00"
+                    }
+                ]
+            },
+            {
+                "name": "Bonus Life",
+                "port": "DSW",
+                "id": 108,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 0,
+                "mask": "0xFFFFCFFF",
+                "options": [
+                    {
+                        "name": "20k 70k and every 70k",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "20k and 80k",
+                        "value": "0x00002000"
+                    },
+                    {
+                        "name": "30k 80k and every 80k",
+                        "value": "0x00001000"
+                    },
+                    {
+                        "name": "30k and 80k",
+                        "value": "0x00003000"
+                    }
+                ]
+            },
+            {
+                "name": "Lives",
+                "port": "DSW",
+                "id": 109,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF1000000",
+                "defaultval": 0,
+                "mask": "0xFFFF3FFF",
+                "options": [
+                    {
+                        "name": "3",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "4",
+                        "value": "0x00004000"
+                    },
+                    {
+                        "name": "6",
+                        "value": "0x00008000"
+                    },
+                    {
+                        "name": "Infinite (Cheat)",
+                        "value": "0x0000C000"
+                    }
+                ]
+            }
+        ],
+        "messages": []
+    }
+}

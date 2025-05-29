@@ -1,0 +1,20 @@
+
+# Quartus Project File for SDRAM Controller (Analogue Pocket)
+
+# Device
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+
+# Top level entity
+set_global_assignment -name TOP_LEVEL_ENTITY sdram_controller_4ch
+
+# Files
+set_global_assignment -name VERILOG_FILE sdram_controller_4ch.sv
+set_global_assignment -name VERILOG_FILE tb_sdram_controller_4ch.sv
+set_global_assignment -name VERILOG_FILE sdram_model_real.sv
+
+# Timing constraints
+set_global_assignment -name SDC_FILE sdram_controller_4ch.sdc
+
+# Simulation
+set_global_assignment -name ENABLE_SIMULATION_MODE ON

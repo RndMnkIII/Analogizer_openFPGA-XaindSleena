@@ -1,0 +1,30 @@
+
+name: Quartus Build (Analogue Pocket)
+
+on:
+  push:
+    paths:
+      - 'sdram_controller_4ch.sv'
+      - 'sdram_controller_4ch.sdc'
+      - 'sdram_controller_4ch.qsf'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openhdl/docker-quartus-lite:18.1
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v3
+
+      - name: Compile with Quartus
+        run: |
+          quartus_sh --flow compile sdram_controller_4ch
+
+      - name: Upload build outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: bitstream
+          path: |
+            output_files/sdram_controller_4ch.sof
+            output_files/sdram_controller_4ch.sta.rpt

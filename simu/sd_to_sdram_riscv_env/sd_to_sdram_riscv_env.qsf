@@ -1,0 +1,36 @@
+
+# Quartus Project File for SD-to-SDRAM using PicoRV32 on Cyclone V
+
+# Device
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CEBA4U19C8
+
+# Top-level entity
+set_global_assignment -name TOP_LEVEL_ENTITY top
+
+# HDL files
+set_global_assignment -name VERILOG_FILE top.v
+set_global_assignment -name VERILOG_FILE picorv32.v
+set_global_assignment -name VERILOG_FILE spi_controller.v
+set_global_assignment -name VERILOG_FILE sdram_ctrl.v
+
+# Pin assignments (placeholder, ajustar según tu diseño real)
+# SDRAM
+set_location_assignment PIN_AA1 -to SDRAM_CLK
+set_location_assignment PIN_AB1 -to SDRAM_CS_N
+# ... (añadir todos los pines necesarios de SDRAM)
+
+# SD Card
+set_location_assignment PIN_Y1 -to SD_CLK
+set_location_assignment PIN_Y2 -to SD_MOSI
+set_location_assignment PIN_Y3 -to SD_MISO
+set_location_assignment PIN_Y4 -to SD_CS
+
+# Clock
+set_location_assignment PIN_W5 -to clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
+
+# Reset
+set_location_assignment PIN_W6 -to reset_n
+
+# Constraints (puedes ampliarlo con más SDC si lo deseas)

@@ -1,0 +1,26 @@
+{
+    "instance": {
+        "magic": "APF_VER_1",
+        "variant_select": {
+            "id": 777,
+            "select": false
+        },
+        "data_slots": [
+            {
+                "id": 1,
+                "filename": "xsleenab.rom",
+                "md5": "e4013fb729b01e4b814720a1a7c46bc1"
+            }
+        ],
+        "memory_writes": [
+            {
+                "address": "0xF1000000",
+                "data": "0x000000C0"
+            },
+            {
+                "address": "0xF2000000",
+                "data": "0x00"
+            }
+        ]
+    }
+}
