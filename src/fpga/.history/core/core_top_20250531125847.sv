@@ -1072,60 +1072,60 @@ xain_top u_xain_top (
        right_r <= p1_controls[3]; 
        btnA_r  <= p1_controls[4];
     end
-//    wire HSync,VSync;
-//    jtframe_resync jtframe_resync
-//    (
-//        .clk(clk_sys),
-//        .pxl_cen(ce_pixel_core),
-//        .hs_in(hsync_core),
-//        .vs_in(vsync_core),
-//        .LVBL(~vblank_core),
-//        .LHBL(~hblank_core),
-//        .hoffset(hoffset), //5bits signed
-//        .voffset(voffset), //5bits signed
-//        .hs_out(HSync),
-//        .vs_out(VSync)
-//    );
+    wire HSync,VSync;
+    jtframe_resync jtframe_resync
+    (
+        .clk(clk_sys),
+        .pxl_cen(ce_pixel_core),
+        .hs_in(hsync_core),
+        .vs_in(vsync_core),
+        .LVBL(~vblank_core),
+        .LHBL(~hblank_core),
+        .hoffset(hoffset), //5bits signed
+        .voffset(voffset), //5bits signed
+        .hs_out(HSync),
+        .vs_out(VSync)
+    );
 
     //Debug OSD: shows Xoffset and Yoffset values and the detected video resolution for Analogizer
     wire [7:0] RGB_out_R, RGB_out_G, RGB_out_B;
     wire HS_out, VS_out, HB_out, VB_out;
 
-//    osd_top #(
-//    .CLK_HZ(48_000_000),
-//    .DURATION_SEC(4)
-//    ) osd_debug_inst (
-//        .clk(clk_sys),
-//        .reset(reset),
-//        .pixel_ce(ce_pixel_core),
-//        .R_in(video_r_core),
-//        .G_in(video_g_core),
-//        .B_in(video_b_core),
-//        .hsync_in(HSync),
-//        .vsync_in(VSync),
-//        .hblank(hblank_core),
-//        .vblank(vblank_core),
-//        .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
-//        .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
-//        .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
-//        .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
-//        .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
-//        .R_out(RGB_out_R),
-//        .G_out(RGB_out_G),
-//        .B_out(RGB_out_B),
-//        .hsync_out(HS_out),
-//        .vsync_out(VS_out),
-//        .hblank_out(HB_out),
-//        .vblank_out(VB_out),
-//        .h_offset_out(hoffset),
-//        .v_offset_out(voffset),
-//        .analogizer_ready(!busy),
-//        .analogizer_video_type(analogizer_video_type),
-//        .snac_game_cont_type(snac_game_cont_type),
-//        .snac_cont_assignment(snac_cont_assignment),
-//        .vid_mode_out(vid_mode),
-//        .osd_pause_out (pause_req)
-//    );
+    osd_top #(
+    .CLK_HZ(48_000_000),
+    .DURATION_SEC(4)
+    ) osd_debug_inst (
+        .clk(clk_sys),
+        .reset(reset),
+        .pixel_ce(ce_pixel_core),
+        .R_in(video_r_core),
+        .G_in(video_g_core),
+        .B_in(video_b_core),
+        .hsync_in(HSync),
+        .vsync_in(VSync),
+        .hblank(hblank_core),
+        .vblank(vblank_core),
+        .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
+        .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
+        .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
+        .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
+        .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
+        .R_out(RGB_out_R),
+        .G_out(RGB_out_G),
+        .B_out(RGB_out_B),
+        .hsync_out(HS_out),
+        .vsync_out(VS_out),
+        .hblank_out(HB_out),
+        .vblank_out(VB_out),
+        .h_offset_out(hoffset),
+        .v_offset_out(voffset),
+        .analogizer_ready(!busy),
+        .analogizer_video_type(analogizer_video_type),
+        .snac_game_cont_type(snac_game_cont_type),
+        .snac_cont_assignment(snac_cont_assignment),
+        .vid_mode_out(vid_mode),
+        .osd_pause_out (pause_req)
+    );
 
     //32_000_000
     wire [31:0] analogizer_bridge_rd_data;

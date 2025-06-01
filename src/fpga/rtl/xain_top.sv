@@ -44,8 +44,8 @@ module xain_top(
     input  wire        ioctl_download,
     input  wire [15:0] ioctl_index,
     input  wire        ioctl_wr,
-    input  wire [24:0] ioctl_addr;
-    input  wire [7:0]  ioctl_data;
+    input  wire [24:0] ioctl_addr,
+    input  wire [7:0]  ioctl_data,
 	//SDRAM interface
 	input  wire 	   sdr_clk,   //SDRAM clock
     inout  wire [15:0] dram_dq,   // 16 bit bidirectional data bus
@@ -57,9 +57,10 @@ module xain_top(
     output wire        dram_cas_n,// columns address select
     output wire        dram_cke,  // clock enable
     output wire        dram_clk   // clock for chip
-)
+);
+	parameter ROM_INDEX = 16'h1; //0 MiSTer FPGA, 1 Analogue Pocket
 	assign dram_clk = sdr_clk;
-
+	
 	///////////////////////////////////////////////////////////////////////
 	// SDRAM
 	///////////////////////////////////////////////////////////////////////
@@ -96,7 +97,7 @@ module xain_top(
 	reg [1:0] sdr_rom_be;
 	reg sdr_rom_req;
 
-	wire sdr_rom_write = ioctl_download && (ioctl_index == 0);
+	wire sdr_rom_write = ioctl_download && (ioctl_index == ROM_INDEX); //0 MiSTer FPGA, 1 Analogue Pocket
 	// wire [24:0] sdr_ch3_addr = sdr_rom_write ? sdr_rom_addr : sdr_bg2_addr;
 	wire [24:0] sdr_ch3_addr = sdr_rom_write ? sdr_rom_addr : sdr_bg2_addr;
 	// wire [15:0] sdr_ch3_din = sdr_rom_write ? sdr_rom_data : sdr_cpu_din;
@@ -172,11 +173,13 @@ module xain_top(
 		.ch3_ready(sdr_ch3_rdy)
 	);
 
+	wire rom_download = ioctl_download && (ioctl_index == ROM_INDEX);
 	rom_loader rom_loader(
 		.sys_clk(clk),
 		.ram_clk(sdr_clk),
 
-		.ioctl_wr(ioctl_wr && !ioctl_index), //ioctl_index == 0
+		.ioctl_downl ( rom_download ),
+		.ioctl_wr(ioctl_wr && (ioctl_index == ROM_INDEX)),
 		.ioctl_data(ioctl_data[7:0]),
 
 		.ioctl_wait(),
@@ -201,13 +204,7 @@ module xain_top(
 	logic [3:0] VIDEO_4B;
 	logic HBLANK_CORE, VBLANK_CORE;
 	logic HSYNC_CORE, VSYNC_CORE;
-	logic  HBlank, VBlank, HSync, VSync;
-	logic  HSync2, VSync2;
-	logic HSYNC, VSYNC;
-	logic CSYNC;
-	logic ce_pix;
-	logic [15:0] snd1, snd2;
-
+	
 	XSleenaCore xlc (
 		.CLK(clk),
 		.SDR_CLK(sdr_clk),

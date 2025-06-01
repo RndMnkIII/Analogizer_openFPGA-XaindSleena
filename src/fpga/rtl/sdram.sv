@@ -69,6 +69,7 @@ module sdram
     input             ch3_rnw,     // 1 - read, 0 - write
     output reg        ch3_ready
 );
+parameter  MHZ = 16'd100; // 80 MHz default clock, set it to proper value to calculate refresh rate
 
 assign SDRAM_nCS  = chip;
 assign SDRAM_nRAS = command[2];
@@ -82,14 +83,17 @@ assign {SDRAM_DQMH,SDRAM_DQML} = SDRAM_A[12:11];
 localparam BURST_LENGTH        = 1; //RndMnkIII
 localparam BURST_CODE          = (BURST_LENGTH == 8) ? 3'b011 : (BURST_LENGTH == 4) ? 3'b010 : (BURST_LENGTH == 2) ? 3'b001 : 3'b000;  // 000=1, 001=2, 010=4, 011=8
 localparam ACCESS_TYPE         = 1'b0;     // 0=sequential, 1=interleaved
-localparam CAS_LATENCY         = 3'd3;     // 2 for < 100MHz, 3 for >100MHz
+localparam CAS_LATENCY         = 3'd2;     // 2 for < 100MHz, 3 for >100MHz
 localparam OP_MODE             = 2'b00;    // only 00 (standard operation) allowed
 localparam NO_WRITE_BURST      = 1'b1;     // 0= write burst enabled, 1=only single access write
 localparam MODE                = {3'b000, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BURST_CODE};
 
-localparam sdram_startup_cycles= 14'd12100;// 100us, plus a little more, @ 100MHz
-localparam cycles_per_refresh  = 14'd500;  // (64000*64)/8192-1 Calc'd as (64ms @ 64MHz)/8192 rose
-localparam startup_refresh_max = 14'b11111111111111;
+localparam sdram_startup_cycles= 16'd12100;// 100us, plus a little more, @ 100MHz
+
+// 64ms/8192 rows = 7.8us
+//localparam RFRSH_CYCLES = 16'd78*MHZ/4'd10;
+localparam cycles_per_refresh  = 16'd78*MHZ/4'd10; //16'd500;  // (64000*64)/8192-1 Calc'd as (64ms @ 64MHz)/8192 rose
+localparam startup_refresh_max = 16'b1111111111111111;
 
 // SDRAM commands
 wire [2:0] CMD_NOP             = 3'b111;
@@ -100,7 +104,7 @@ wire [2:0] CMD_PRECHARGE       = 3'b010;
 wire [2:0] CMD_AUTO_REFRESH    = 3'b001;
 wire [2:0] CMD_LOAD_MODE       = 3'b000;
 
-reg [13:0] refresh_count = startup_refresh_max - sdram_startup_cycles;
+reg [15:0] refresh_count = startup_refresh_max - sdram_startup_cycles;
 reg  [2:0] command;
 reg        chip;
 

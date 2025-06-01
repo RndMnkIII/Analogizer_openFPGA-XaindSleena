@@ -28,7 +28,6 @@ module XSleenaCore (
 	input wire CLK,
 	input wire SDR_CLK,
 	input wire RSTn,
-	input wire NATIVE_VFREQ,
 
 	//inputs
 	input wire [7:0] DSW1,

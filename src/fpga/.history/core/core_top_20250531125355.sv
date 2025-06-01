@@ -765,15 +765,11 @@ module core_top
 
     video_timing_t video_timing_lat = VIDEO_57HZ;
     video_timing_t video_timing;
-    assign video_timing = video_timing_t'(vid_mode_s);
+    assign video_timing = video_timing_t'({1'b0,mod_sw0[2]});
 
     reg reconfig_pause = 0;
     logic [1:0] vid_mode;
-    wire [1:0] vid_mode_s;
-
-    always @(posedge clk_sys) begin
-        vid_mode <= {1'b0,mod_sw0[2]};
-    end
+    //wire [1:0] vid_mode_s;
 
     always @(posedge clk_74a) begin
         reg [4:0] param_idx = 0;
@@ -824,8 +820,6 @@ module core_top
     wire reconfig_pause_s;
     synch_3 sync_reconfpause(reconfig_pause, reconfig_pause_s, clk_sys);
 
-    //Synchronize vid_mode into clk_74a domain before usage
-    synch_3 #(.WIDTH(2)) sync_vid_mode(vid_mode, vid_mode_s, clk_74a);
 
 //Xain'd Sleena uses only one set of game controls and 2 start buttons that are needed for play a continue
 logic [7:0] PLAYER1, PLAYER2;
@@ -954,8 +948,7 @@ xain_top u_xain_top (
         reg [31:0] p1_pocket_btn, p1_pocket_joy;
         reg [31:0] p2_pocket_btn, p2_pocket_joy;
 
-        //if((snac_game_cont_type == 5'h0) || !analogizer_ena) begin //SNAC is disabled
-        if((snac_game_cont_type == 5'h0)) begin //SNAC is disabled
+        if((snac_game_cont_type == 5'h0) || !analogizer_ena) begin //SNAC is disabled
             p1_controls <= cont1_key;
             p2_controls <= cont2_key;
         end
@@ -1072,60 +1065,60 @@ xain_top u_xain_top (
        right_r <= p1_controls[3]; 
        btnA_r  <= p1_controls[4];
     end
-//    wire HSync,VSync;
-//    jtframe_resync jtframe_resync
-//    (
-//        .clk(clk_sys),
-//        .pxl_cen(ce_pixel_core),
-//        .hs_in(hsync_core),
-//        .vs_in(vsync_core),
-//        .LVBL(~vblank_core),
-//        .LHBL(~hblank_core),
-//        .hoffset(hoffset), //5bits signed
-//        .voffset(voffset), //5bits signed
-//        .hs_out(HSync),
-//        .vs_out(VSync)
-//    );
+    wire HSync,VSync;
+    jtframe_resync jtframe_resync
+    (
+        .clk(clk_sys),
+        .pxl_cen(ce_pixel_core),
+        .hs_in(hsync_core),
+        .vs_in(vsync_core),
+        .LVBL(~vblank_core),
+        .LHBL(~hblank_core),
+        .hoffset(hoffset), //5bits signed
+        .voffset(voffset), //5bits signed
+        .hs_out(HSync),
+        .vs_out(VSync)
+    );
 
     //Debug OSD: shows Xoffset and Yoffset values and the detected video resolution for Analogizer
     wire [7:0] RGB_out_R, RGB_out_G, RGB_out_B;
     wire HS_out, VS_out, HB_out, VB_out;
 
-//    osd_top #(
-//    .CLK_HZ(48_000_000),
-//    .DURATION_SEC(4)
-//    ) osd_debug_inst (
-//        .clk(clk_sys),
-//        .reset(reset),
-//        .pixel_ce(ce_pixel_core),
-//        .R_in(video_r_core),
-//        .G_in(video_g_core),
-//        .B_in(video_b_core),
-//        .hsync_in(HSync),
-//        .vsync_in(VSync),
-//        .hblank(hblank_core),
-//        .vblank(vblank_core),
-//        .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
-//        .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
-//        .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
-//        .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
-//        .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
-//        .R_out(RGB_out_R),
-//        .G_out(RGB_out_G),
-//        .B_out(RGB_out_B),
-//        .hsync_out(HS_out),
-//        .vsync_out(VS_out),
-//        .hblank_out(HB_out),
-//        .vblank_out(VB_out),
-//        .h_offset_out(hoffset),
-//        .v_offset_out(voffset),
-//        .analogizer_ready(!busy),
-//        .analogizer_video_type(analogizer_video_type),
-//        .snac_game_cont_type(snac_game_cont_type),
-//        .snac_cont_assignment(snac_cont_assignment),
-//        .vid_mode_out(vid_mode),
-//        .osd_pause_out (pause_req)
-//    );
+    osd_top #(
+    .CLK_HZ(48_000_000),
+    .DURATION_SEC(4)
+    ) osd_debug_inst (
+        .clk(clk_sys),
+        .reset(reset),
+        .pixel_ce(ce_pixel_core),
+        .R_in(video_r_core),
+        .G_in(video_g_core),
+        .B_in(video_b_core),
+        .hsync_in(HSync),
+        .vsync_in(VSync),
+        .hblank(hblank_core),
+        .vblank(vblank_core),
+        .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
+        .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
+        .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
+        .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
+        .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
+        .R_out(RGB_out_R),
+        .G_out(RGB_out_G),
+        .B_out(RGB_out_B),
+        .hsync_out(HS_out),
+        .vsync_out(VS_out),
+        .hblank_out(HB_out),
+        .vblank_out(VB_out),
+        .h_offset_out(hoffset),
+        .v_offset_out(voffset),
+        .analogizer_ready(!busy),
+        .analogizer_video_type(analogizer_video_type),
+        .snac_game_cont_type(snac_game_cont_type),
+        .snac_cont_assignment(snac_cont_assignment),
+        .vid_mode_out(vid_mode),
+        .osd_pause_out (pause_req)
+    );
 
     //32_000_000
     wire [31:0] analogizer_bridge_rd_data;

@@ -48,8 +48,8 @@ package xain_pkg;
 
     //parameter region_t REGION_SHARED_RAM = '{ 'h400000, 0, 5'b00000 };
 
-    typedef enum bit[0] {
-        VIDEO_57HZ = 1'd0,
-        VIDEO_60HZ = 1'd1
+    typedef enum bit[1:0] {
+        VIDEO_57HZ = 2'd0,
+        VIDEO_60HZ = 2'd1
     } video_timing_t;
 endpackage

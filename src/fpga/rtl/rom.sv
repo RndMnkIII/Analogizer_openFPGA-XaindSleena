@@ -25,6 +25,7 @@ module rom_loader
     input sys_clk,
     input ram_clk,
 
+    input ioctl_downl,
     input ioctl_wr,
     input [7:0] ioctl_data,
 
@@ -63,8 +64,16 @@ reg [3:0] region = 0;
 
 reg write_rq = 0;
 reg write_ack = 0;
+reg ioctl_wr_last;
 
 always @(posedge sys_clk) begin
+    ioctl_wr_last <= ioctl_wr;
+
+    if (!ioctl_downl) begin
+			stage <= BOARD_CFG;
+			region <= 0;
+    end
+
     if (write_ack == write_rq) begin
         sdr_req <= 0;
         ioctl_wait <= 0;
@@ -72,7 +81,7 @@ always @(posedge sys_clk) begin
 
     bram_wr <= 0;
     
-    if (ioctl_wr) begin
+    if (~ioctl_wr_last && ioctl_wr) begin //capture only on rising edge
         case (stage)
         BOARD_CFG: begin board_cfg <= ioctl_data; stage <= REGION_IDX; end
         REGION_IDX: begin
