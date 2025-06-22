@@ -16,9 +16,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/XSleenaCore_RGB4bitLUT.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/XSleenaCore_SoundCPU.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/XSleenacore_VideoMixer.sv
 set_global_assignment -name VERILOG_FILE rtl/jtframe_frac_cen.v
-set_global_assignment -name VERILOG_FILE rtl/cpu/mc6809.v
-set_global_assignment -name VERILOG_FILE rtl/cpu/mc6809e.v
-set_global_assignment -name VERILOG_FILE rtl/cpu/mc6809i.v
 set_global_assignment -name VERILOG_FILE rtl/cpu/mc6809is.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/rom.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/sdram.sv

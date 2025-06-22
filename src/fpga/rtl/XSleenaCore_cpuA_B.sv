@@ -23,7 +23,7 @@ import xain_pkg::*;
 
 module XSleenaCore_cpuA_B (
 	input wire clk, //48MHz
-	input wire clk_ram, //96MHz
+	//input wire clk_ram, //96MHz
 	input wire clk12M_cen,
 	//CPU Clocking
 	input wire main_4x,
@@ -32,12 +32,6 @@ module XSleenaCore_cpuA_B (
 	input wire main_2xb,
 	input wire main_1x,
 	input wire main_1xb,
-	input wire sub_4x,
-	input wire sub_4xb,
-	input wire sub_2x,
-	input wire sub_2xb,
-	input wire sub_1x,
-	input wire sub_1xb,
 
   	input wire RSTn,
 	input wire VBLK,
@@ -66,22 +60,24 @@ module XSleenaCore_cpuA_B (
 	output logic WDn,
 	
 	//SDRAM ROM interface
-	output logic [24:0] sdr_addr_a,
-	output logic sdr_req_a,
-	input wire sdr_rdy_a,
-	input wire [15:0] sdr_data_a,	
+	// output logic [24:0] sdr_addr_a,
+	// output logic sdr_req_a,
+	// input wire sdr_rdy_a,
+	// input wire [15:0] sdr_data_a,	
 
-	output logic [24:0] sdr_addr_b,
-	output logic sdr_req_b,
-	input wire sdr_rdy_b,
-	input wire [15:0] sdr_data_b,
+	// output logic [24:0] sdr_addr_b,
+	// output logic sdr_req_b,
+	// input wire sdr_rdy_b,
+	// input wire [15:0] sdr_data_b,
 	//ROM interface
     input bram_wr,
     input [7:0] bram_data,
     input [19:0] bram_addr,
     input [1:0] bram_cs,
 	//pause interface
-	input wire pause_rq
+	input wire pause_rq,
+	//sync reset
+	output logic sync_rst
 );
 //  -----------------------------------------------------------------------------------------------------------------------------------------------
 // |                              Diagram of interconnection of the Main and Secondary CPUs with the Shared SRAM                                   |
@@ -122,17 +118,17 @@ module XSleenaCore_cpuA_B (
 // |                                                                 \                                                                             |
 //  -----------------------------------------------------------------------------------------------------------------------------------------------
 	
-	logic [7:0] MAINCPU_EXT_Din, MAINCPU_EXT_Dout;
-	logic [7:0] SHARED_SRAM_EXT_Din, SHARED_SRAM_EXT_Dout;
-	logic [7:0] SUBCPU_EXT_Din, SUBCPU_EXT_Dout;
-	logic [7:0] SHARED_SRAM_Dout, SHARED_SRAM_Din;
+	logic [7:0] MAINCPU_EXT_Din, MAINCPU_EXT_Dout /* synthesis preserve */;
+	logic [7:0] SHARED_SRAM_EXT_Din, SHARED_SRAM_EXT_Dout /* synthesis preserve */;
+	logic [7:0] SUBCPU_EXT_Din, SUBCPU_EXT_Dout /* synthesis preserve */;
+	logic [7:0] SHARED_SRAM_Dout, SHARED_SRAM_Din /* synthesis preserve */;
 
 //**************************************
 // *** Main CPU (Schematics page 1B) ***
 //**************************************
-	logic IRQ2n;
-	logic COMRn;
-	logic Q2;
+	logic IRQ2n /* synthesis keep */;
+	logic COMRn /* synthesis keep */;
+	logic Q2 /* synthesis preserve */;
 
 	logic ic100A_Qn;
 	// ttl_7474 #(.BLOCKS(1), .DELAY_RISE(10), .DELAY_FALL(10)) ic100A
@@ -143,7 +139,9 @@ module XSleenaCore_cpuA_B (
 		.q(),
 		.qn(ic100A_Qn),
 		.set(1'b0),    // active high
-		.clr(~W3A09n),    // active high
+		//.clr(~W3A09n| ~RSTn),    // active high
+		.clr(~W3A09n),    // //No es necesario evitar que la señal de IRQ esté activa durante el reset o al salir de él
+		                  // corregido el código mc6809is para evitar esto.
 		.cen(VBLK) // signal whose edge will trigger the FF
   	);
 
@@ -156,7 +154,8 @@ module XSleenaCore_cpuA_B (
 		.q(),
 		.qn(ic100B_Qn),
 		.set(1'b0),    // active high
-		.clr(~W3A0Bn),    // active high
+		//.clr(~W3A0Bn | ~RSTn),    // active high
+		.clr(~W3A0Bn),    // //No es necesario evitar que la señal de IRQ esté activa durante el reset o al salir de él
 		.cen(IRQ2n) // signal whose edge will trigger the FF
   	);
 
@@ -169,7 +168,8 @@ module XSleenaCore_cpuA_B (
 		.q(),
 		.qn(ic87A_Qn),
 		.set(1'b0),    // active high
-		.clr(~W3A0An),    // active high
+		//.clr(~W3A0An| ~RSTn),    // active high
+		.clr(~W3A0An),    // //No es necesario evitar que la señal de IRQ esté activa durante el reset o al salir de él
 		.cen(IMS) // signal whose edge will trigger the FF
   	);
 
@@ -221,12 +221,14 @@ module XSleenaCore_cpuA_B (
 	always @(posedge clk) begin
 		clkE_prev <= ic76d;
 		clkQ_prev <= ic87B_Q;
+		// clkEf_cen <= clkE_prev && !ic76d;
+		// clkQf_cen <= clkQ_prev && !ic87B_Q;
 	end 
 
-	always_comb begin
+	 always_comb begin
 		clkEf_cen = clkE_prev && !ic76d;
 		clkQf_cen = clkQ_prev && !ic87B_Q;
-	end
+	 end
 	
 	//The BS,BA status registers are needed to check
 	//when the cpu is in reset acknowledge state:
@@ -238,8 +240,8 @@ module XSleenaCore_cpuA_B (
 	logic BSLr=0;
 	mc6809is ic89(
 		.CLK(clk),
-        .fallE_en(clkEf_cen),
-     	.fallQ_en(clkQf_cen),
+        .fallE_en(clkEf_cen), //active low reset
+     	.fallQ_en(clkQf_cen), //active low reset
 		.D(maincpu_Din),
 		.DOut(maincpu_Dout),
 		.ADDR(maincpu_A),
@@ -295,80 +297,80 @@ module XSleenaCore_cpuA_B (
 	logic rom_addr_a;
 
 	//Debug: counter # of cycles between rom_req and sdr_rdy
-	(* noprune *) logic [7:0] sdr_req_cnt;
+	// (* noprune *) logic [7:0] sdr_req_cnt;
 
-	assign maddr_ffff_a = &(maincpu_A);
-	assign dummy_ffff_a = maddr_ffff_a && !main_BA && !main_BS;
-	assign rom_addr_a = |(maincpu_A[15:14]);
+	// assign maddr_ffff_a = &(maincpu_A);
+	// assign dummy_ffff_a = maddr_ffff_a && !main_BA && !main_BS;
+	// assign rom_addr_a = |(maincpu_A[15:14]);
 
-	//Detect if there is any change on req_rom_addr ignoring LSB of the address (16bit data wide)
-	assign sdr_req_a = |(req_rom_addr_a[15:1] ^ last_req_rom_addr_a[15:1]);
-	always_ff @(posedge clk_ram) begin
-		if(!RSTn) begin
-			last_maddr_a        <= 16'h0000;
-			req_rom_addr_a      <= 16'h0000;
-			last_req_rom_addr_a <= 16'h0000;
-		end
-		else
-		begin
-			last_maddr_a <= maincpu_A[15:0];
-			last_bsl_a <= BSL;
-			last_req_rom_addr_a <= req_rom_addr_a;
+	// //Detect if there is any change on req_rom_addr ignoring LSB of the address (16bit data wide)
+	// assign sdr_req_a = |(req_rom_addr_a[15:1] ^ last_req_rom_addr_a[15:1]);
+	// always_ff @(posedge clk_ram) begin
+	// 	if(!RSTn) begin
+	// 		last_maddr_a        <= 16'h0000;
+	// 		req_rom_addr_a      <= 16'h0000;
+	// 		last_req_rom_addr_a <= 16'h0000;
+	// 	end
+	// 	else
+	// 	begin
+	// 		last_maddr_a <= maincpu_A[15:0];
+	// 		last_bsl_a <= BSL;
+	// 		last_req_rom_addr_a <= req_rom_addr_a;
 
-			if (({BSL,maincpu_A[15:0]} != {last_bsl_a,last_maddr_a}) && !dummy_ffff_a && maincpu_RW && rom_addr_a) begin
-				req_rom_addr_a <= maincpu_A[15] ? {1'b0,maincpu_A[14:0]} : {1'b1,BSL,maincpu_A[13:0]};	
-			end
-		end
-	end
+	// 		if (({BSL,maincpu_A[15:0]} != {last_bsl_a,last_maddr_a}) && !dummy_ffff_a && maincpu_RW && rom_addr_a) begin
+	// 			req_rom_addr_a <= maincpu_A[15] ? {1'b0,maincpu_A[14:0]} : {1'b1,BSL,maincpu_A[13:0]};	
+	// 		end
+	// 	end
+	// end
 
 	//debug state machine
-	(* noprune *) logic [7:0] max_cnt_val=8'd0;
-	(* noprune *) logic [7:0] min_cnt_val=8'd255;
+	// (* noprune *) logic [7:0] max_cnt_val=8'd0;
+	// (* noprune *) logic [7:0] min_cnt_val=8'd255;
 
-	parameter SDR_REQ_CNT_HLD = 3'b001, SDR_REQ_CNT_RST = 3'b010, SDR_REQ_CNT_INC = 3'b100;
-	logic [2:0] state, next_state;
+	// parameter SDR_REQ_CNT_HLD = 3'b001, SDR_REQ_CNT_RST = 3'b010, SDR_REQ_CNT_INC = 3'b100;
+	// logic [2:0] state, next_state;
 
-	always_comb begin
-		next_state = 3'b000;
-		case(state)
-			SDR_REQ_CNT_HLD: 
-				if(sdr_req_a) next_state = SDR_REQ_CNT_RST;
-				else next_state = SDR_REQ_CNT_HLD;
-			SDR_REQ_CNT_RST:
-				next_state = SDR_REQ_CNT_INC;
-			SDR_REQ_CNT_INC:
-				if (sdr_rdy_a) next_state = SDR_REQ_CNT_HLD;
-				else next_state = SDR_REQ_CNT_INC;
-		endcase
-	end
+	// always_comb begin
+	// 	next_state = 3'b000;
+	// 	case(state)
+	// 		SDR_REQ_CNT_HLD: 
+	// 			if(sdr_req_a) next_state = SDR_REQ_CNT_RST;
+	// 			else next_state = SDR_REQ_CNT_HLD;
+	// 		SDR_REQ_CNT_RST:
+	// 			next_state = SDR_REQ_CNT_INC;
+	// 		SDR_REQ_CNT_INC:
+	// 			if (sdr_rdy_a) next_state = SDR_REQ_CNT_HLD;
+	// 			else next_state = SDR_REQ_CNT_INC;
+	// 	endcase
+	// end
 
-	always_ff @(posedge clk_ram) begin
-		if (!RSTn) state <= SDR_REQ_CNT_HLD;
-		else 	   state <= next_state;
-	end
+	// always_ff @(posedge clk_ram) begin
+	// 	if (!RSTn) state <= SDR_REQ_CNT_HLD;
+	// 	else 	   state <= next_state;
+	// end
 
-	always_ff @(posedge clk_ram) begin
-		if(!RSTn) begin
-			sdr_req_cnt <= 8'd0;
-			max_cnt_val <= 8'd0;
-			min_cnt_val <= 8'd255;
-		end
-		else begin
-			case (state)
-				SDR_REQ_CNT_HLD: 
-					sdr_req_cnt <= sdr_req_cnt;
-				SDR_REQ_CNT_RST: begin
-					sdr_req_cnt <= 8'd0;
-					if(sdr_req_cnt > max_cnt_val) max_cnt_val <= sdr_req_cnt;
-					if(sdr_req_cnt < min_cnt_val) min_cnt_val <= sdr_req_cnt;
-				end
-				SDR_REQ_CNT_INC:
-					sdr_req_cnt <= sdr_req_cnt + 8'd1;
-				default:
-					sdr_req_cnt <= sdr_req_cnt;
-			endcase
-		end
-	end
+	// always_ff @(posedge clk_ram) begin
+	// 	if(!RSTn) begin
+	// 		sdr_req_cnt <= 8'd0;
+	// 		max_cnt_val <= 8'd0;
+	// 		min_cnt_val <= 8'd255;
+	// 	end
+	// 	else begin
+	// 		case (state)
+	// 			SDR_REQ_CNT_HLD: 
+	// 				sdr_req_cnt <= sdr_req_cnt;
+	// 			SDR_REQ_CNT_RST: begin
+	// 				sdr_req_cnt <= 8'd0;
+	// 				if(sdr_req_cnt > max_cnt_val) max_cnt_val <= sdr_req_cnt;
+	// 				if(sdr_req_cnt < min_cnt_val) min_cnt_val <= sdr_req_cnt;
+	// 			end
+	// 			SDR_REQ_CNT_INC:
+	// 				sdr_req_cnt <= sdr_req_cnt + 8'd1;
+	// 			default:
+	// 				sdr_req_cnt <= sdr_req_cnt;
+	// 		endcase
+	// 	end
+	// end
 	//end of //debug state machine
 
 	//*** End of ROM request logic ***
@@ -481,10 +483,13 @@ module XSleenaCore_cpuA_B (
 // `endif
 
 	logic ic68; //4-input NAND gate LS20
-	assign  ic68 = ~(&ic67_Y[3:0]);
+	//assign  ic68 = ~(&ic67_Y[3:0]);
 
 	logic ic69; //NOT gate
-	assign ic69 = ~ic68;
+	//assign ic69 = ~ic68;
+
+	//suppress double not gate
+	assign ic69 = &ic67_Y[3:0];
 	assign COMRn = ic69;
 	assign {BACK2SELn,BACK1SELn,MAPSELn} = ic67_Y[6:4];
 
@@ -511,15 +516,15 @@ module XSleenaCore_cpuA_B (
 	logic ic57b; //NOT gate
 //CPU OVERCLOCK HACK
 // `ifdef CPU_OVERCLOCK_HACK
-	assign ic57b = ~sub_1xb;
+	assign ic57b = ~main_1xb;
 // `else
 // 	assign ic57b = ~M2Hn;
 // `endif
 
 	//For simulation used the asynchronous version by Greg Miller
-	logic subcpu_RW;
-	logic [15:0] subcpu_A;
-	logic [7:0] subcpu_Din, subcpu_Dout;
+	logic subcpu_RW /* synthesis keep */;
+	logic [15:0] subcpu_A /* synthesis keep */;
+	logic [7:0] subcpu_Din, subcpu_Dout /* synthesis preserve */;
 	logic ic17a_Qn;
 
 	//$info("*** SUB 68B09 SYNCHRONOUS CPU using falling edge CEN signals of E, Q clocks ***");
@@ -531,6 +536,8 @@ module XSleenaCore_cpuA_B (
 	always @(posedge clk) begin
 		clkE_prev2 <= ic57b;
 		clkQ_prev2 <= Q2;
+		// clkEf_cen2 <= (clkE_prev2 & ~ic57b);
+		// clkQf_cen2 <= (clkQ_prev2 & ~Q2);
 	end 
 	always_comb begin
 		clkEf_cen2 = clkE_prev2 && !ic57b;
@@ -542,8 +549,8 @@ module XSleenaCore_cpuA_B (
 	logic sub_BAr=0;
 	mc6809is ic30(
 		.CLK(clk),
-        .fallE_en(clkEf_cen2),
-     	.fallQ_en(clkQf_cen2),
+        .fallE_en(clkEf_cen2), //active low reset
+     	.fallQ_en(clkQf_cen2), //active low reset
 		.D(subcpu_Din),
 		.DOut(subcpu_Dout),
 		.ADDR(subcpu_A),
@@ -562,15 +569,18 @@ module XSleenaCore_cpuA_B (
 		.RegData()
     );
 
+	assign sync_rst = clkEf_cen2;
+
 	logic [3:0] ic18_Y; //2-4 Decoder
 
-	DFF_pseudoAsyncClrPre #(.W(1)) ic17a ( //maincpu IRQn
+	DFF_pseudoAsyncClrPre #(.W(1)) ic17a ( //SubCPU IRQn
 		.clk(clk),
 		.din(1'b1),
 		.q(),
 		.qn(ic17a_Qn),
 		.set(1'b0),    // active high
-		.clr(~ic18_Y[1]),    // active high
+		//.clr(~ic18_Y[1] | ~RSTn ),    // active high
+		.clr(~ic18_Y[1]),    //No es necesario evitar que la señal de IRQ esté activa durante el reset o al salir de él
 		.cen(W3A0Cn) // signal whose edge will trigger the FF
   	);
 
@@ -580,15 +590,15 @@ module XSleenaCore_cpuA_B (
 // `ifdef CPU_OVERCLOCK_HACK
 	DFF_pseudoAsyncClrPre #(.W(1)) ic17b ( //shared RAM RnW
 		.clk(clk),
-		.din(sub_2x),
+		.din(main_2x),
 		.q(ic17b_Q),
 		.qn(ic17b_Qn),
 		.set(1'b0),    // active high
 		.clr(1'b0),    // active high
-		.cen(sub_4x) // signal whose edge will trigger the FF
+		.cen(main_4x) // signal whose edge will trigger the FF
   	);
 
-	assign ic6b = ~(ic17b_Qn & sub_1xb & ic76b);
+	assign ic6b = ~(ic17b_Qn & main_1xb & ic76b);
 // `else
 // 	DFF_pseudoAsyncClrPre #(.W(1)) ic17b ( //shared RAM RnW
 // 		.clk(clk),
@@ -619,87 +629,87 @@ module XSleenaCore_cpuA_B (
 	logic [7:0] subcpu_ROM_Byte_Dout;
 	logic [15:0] last_maddr_b;
 	logic last_bsl_b=1'b0;
-	logic [15:0] req_rom_addr_b; //128Kb space
-	logic [15:0] last_req_rom_addr_b; //128Kb space
-	logic maddr_ffff_b;
-	logic dummy_ffff_b;
-	logic rom_addr_b;
+	// logic [15:0] req_rom_addr_b; //128Kb space
+	// logic [15:0] last_req_rom_addr_b; //128Kb space
+	// logic maddr_ffff_b;
+	// logic dummy_ffff_b;
+	// logic rom_addr_b;
 
-	//Debug: counter # of cycles between rom_req and sdr_rdy
-	(* noprune *) logic [7:0] sdr_req_cnt_b;
+	// //Debug: counter # of cycles between rom_req and sdr_rdy
+	// (* noprune *) logic [7:0] sdr_req_cnt_b;
 
-	assign maddr_ffff_b = &(subcpu_A);
-	assign dummy_ffff_b = maddr_ffff_b && !sub_BA && !sub_BS;
-	assign rom_addr_b = |(subcpu_A[15:14]);
+	// assign maddr_ffff_b = &(subcpu_A);
+	// assign dummy_ffff_b = maddr_ffff_b && !sub_BA && !sub_BS;
+	// assign rom_addr_b = |(subcpu_A[15:14]);
 
-	//Detect if there is any change on req_rom_addr ignoring LSB of the address (16bit data wide)
-	assign sdr_req_b = |(req_rom_addr_b[15:1] ^ last_req_rom_addr_b[15:1]);
-	always_ff @(posedge clk_ram) begin
-		if(!RSTn) begin
-			last_maddr_b        <= 16'h0000;
-			req_rom_addr_b      <= 16'h0000;
-			last_req_rom_addr_b <= 16'h0000;
-		end
-		else
-		begin
-			last_maddr_b <= subcpu_A[15:0];
-			last_bsl_b <= ic56a_Q;
-			last_req_rom_addr_b <= req_rom_addr_b;
+	// //Detect if there is any change on req_rom_addr ignoring LSB of the address (16bit data wide)
+	// assign sdr_req_b = |(req_rom_addr_b[15:1] ^ last_req_rom_addr_b[15:1]);
+	// always_ff @(posedge clk_ram) begin
+	// 	if(!RSTn) begin
+	// 		last_maddr_b        <= 16'h0000;
+	// 		req_rom_addr_b      <= 16'h0000;
+	// 		last_req_rom_addr_b <= 16'h0000;
+	// 	end
+	// 	else
+	// 	begin
+	// 		last_maddr_b <= subcpu_A[15:0];
+	// 		last_bsl_b <= ic56a_Q;
+	// 		last_req_rom_addr_b <= req_rom_addr_b;
 
-			if (({ic56a_Q,subcpu_A[15:0]} != {last_bsl_b,last_maddr_b}) && !dummy_ffff_b && subcpu_RW && rom_addr_b) begin
-				req_rom_addr_b <= subcpu_A[15] ? {1'b0,subcpu_A[14:0]} : {1'b1,ic56a_Q,subcpu_A[13:0]};	
-			end
-		end
-	end
+	// 		if (({ic56a_Q,subcpu_A[15:0]} != {last_bsl_b,last_maddr_b}) && !dummy_ffff_b && subcpu_RW && rom_addr_b) begin
+	// 			req_rom_addr_b <= subcpu_A[15] ? {1'b0,subcpu_A[14:0]} : {1'b1,ic56a_Q,subcpu_A[13:0]};	
+	// 		end
+	// 	end
+	// end
 
 	//debug state machine
-	(* noprune *) logic [7:0] max_cnt_val_b=8'd0;
-	(* noprune *) logic [7:0] min_cnt_val_b=8'd255;
+	// (* noprune *) logic [7:0] max_cnt_val_b=8'd0;
+	// (* noprune *) logic [7:0] min_cnt_val_b=8'd255;
 
-	//parameter SDR_REQ_CNT_HLD = 3'b001, SDR_REQ_CNT_RST = 3'b010, SDR_REQ_CNT_INC = 3'b100;
-	logic [2:0] state_b, next_state_b;
+	// //parameter SDR_REQ_CNT_HLD = 3'b001, SDR_REQ_CNT_RST = 3'b010, SDR_REQ_CNT_INC = 3'b100;
+	// logic [2:0] state_b, next_state_b;
 
-	always_comb begin
-		next_state_b = 3'b000;
-		case(state_b)
-			SDR_REQ_CNT_HLD: 
-				if(sdr_req_b) next_state_b = SDR_REQ_CNT_RST;
-				else next_state_b = SDR_REQ_CNT_HLD;
-			SDR_REQ_CNT_RST:
-				next_state_b = SDR_REQ_CNT_INC;
-			SDR_REQ_CNT_INC:
-				if (sdr_rdy_b) next_state_b = SDR_REQ_CNT_HLD;
-				else next_state_b = SDR_REQ_CNT_INC;
-		endcase
-	end
+	// always_comb begin
+	// 	next_state_b = 3'b000;
+	// 	case(state_b)
+	// 		SDR_REQ_CNT_HLD: 
+	// 			if(sdr_req_b) next_state_b = SDR_REQ_CNT_RST;
+	// 			else next_state_b = SDR_REQ_CNT_HLD;
+	// 		SDR_REQ_CNT_RST:
+	// 			next_state_b = SDR_REQ_CNT_INC;
+	// 		SDR_REQ_CNT_INC:
+	// 			if (sdr_rdy_b) next_state_b = SDR_REQ_CNT_HLD;
+	// 			else next_state_b = SDR_REQ_CNT_INC;
+	// 	endcase
+	// end
 
-	always_ff @(posedge clk_ram) begin
-		if (!RSTn) state_b <= SDR_REQ_CNT_HLD;
-		else 	   state_b <= next_state_b;
-	end
+	// always_ff @(posedge clk_ram) begin
+	// 	if (!RSTn) state_b <= SDR_REQ_CNT_HLD;
+	// 	else 	   state_b <= next_state_b;
+	// end
 
-	always_ff @(posedge clk_ram) begin
-		if(!RSTn) begin
-			sdr_req_cnt_b <= 8'd0;
-			max_cnt_val_b <= 8'd0;
-			min_cnt_val_b <= 8'd255;
-		end
-		else begin
-			case (state_b)
-				SDR_REQ_CNT_HLD: 
-					sdr_req_cnt_b <= sdr_req_cnt_b;
-				SDR_REQ_CNT_RST: begin
-					sdr_req_cnt_b <= 8'd0;
-					if(sdr_req_cnt_b > max_cnt_val_b) max_cnt_val_b <= sdr_req_cnt_b;
-					if(sdr_req_cnt_b < min_cnt_val_b) min_cnt_val_b <= sdr_req_cnt_b;
-				end
-				SDR_REQ_CNT_INC:
-					sdr_req_cnt_b <= sdr_req_cnt_b + 8'd1;
-				default:
-					sdr_req_cnt_b <= sdr_req_cnt_b;
-			endcase
-		end
-	end
+	// always_ff @(posedge clk_ram) begin
+	// 	if(!RSTn) begin
+	// 		sdr_req_cnt_b <= 8'd0;
+	// 		max_cnt_val_b <= 8'd0;
+	// 		min_cnt_val_b <= 8'd255;
+	// 	end
+	// 	else begin
+	// 		case (state_b)
+	// 			SDR_REQ_CNT_HLD: 
+	// 				sdr_req_cnt_b <= sdr_req_cnt_b;
+	// 			SDR_REQ_CNT_RST: begin
+	// 				sdr_req_cnt_b <= 8'd0;
+	// 				if(sdr_req_cnt_b > max_cnt_val_b) max_cnt_val_b <= sdr_req_cnt_b;
+	// 				if(sdr_req_cnt_b < min_cnt_val_b) min_cnt_val_b <= sdr_req_cnt_b;
+	// 			end
+	// 			SDR_REQ_CNT_INC:
+	// 				sdr_req_cnt_b <= sdr_req_cnt_b + 8'd1;
+	// 			default:
+	// 				sdr_req_cnt_b <= sdr_req_cnt_b;
+	// 		endcase
+	// 	end
+	// end
 	//end of //debug state machine
 
 	//*** End of ROM request logic ***
@@ -767,12 +777,12 @@ module XSleenaCore_cpuA_B (
 //     end
 // `endif
 
-	logic [7:0] ic58_Y; //3-8 Decoder
+	logic [7:0] ic58_Y /* synthesis keep */; //3-8 Decoder
 //CPU OVERCLOCK HACK
 // `ifdef CPU_OVERCLOCK_HACK
 	ttl_74138 #(.WIDTH_OUT(8), .DELAY_RISE(0), .DELAY_FALL(0)) ic58
 	(
-		.Enable1_bar(sub_1xb), //4 G2An
+		.Enable1_bar(main_1xb), //4 G2An
 		.Enable2_bar(subcpu_A[15]), //Only enabled for addresses < 0x8000.
 		.Enable3(1'b1), //6 G1
 		.A({subcpu_RW,subcpu_A[14:13]}), //3,2,1 C,B,A
@@ -789,11 +799,11 @@ module XSleenaCore_cpuA_B (
 // 	);
 // `endif
 
-	logic ic64a; //AND gate
+	logic ic64a /* synthesis keep */; //AND gate
 	assign ic64a = (ic58_Y[0] & ic58_Y[4]);
 
 	//Hack: generate delay for subcpu_Dout.
-	logic [7:0] subcpu_Dout2;
+	logic [7:0] subcpu_Dout2 /*synthesis preserve */;
 
 //--- FPGA Synthesizable unidirectinal data bus MUX, replaces ic88 tri-state logic ---
 	always_ff @(posedge clk) begin
@@ -802,8 +812,13 @@ module XSleenaCore_cpuA_B (
 	end
 
 	//Sub CPU data output
-	always_ff @(posedge clk) begin
-		if(!subcpu_RW && !ic64a) SUBCPU_EXT_Dout <= subcpu_Dout2;
+	// always_ff @(posedge clk) begin
+	// 	if(!subcpu_RW && !ic64a) SUBCPU_EXT_Dout <= subcpu_Dout2;
+	// 	else                    SUBCPU_EXT_Dout <= 8'hFF; //replaces hi-Z bus state
+	// end
+	//test without delay
+		always_ff @(posedge clk) begin
+		if(!subcpu_RW && !ic64a) SUBCPU_EXT_Dout <= subcpu_Dout;
 		else                    SUBCPU_EXT_Dout <= 8'hFF; //replaces hi-Z bus state
 	end
 //-------------------------------------------------------------------------------
@@ -820,25 +835,36 @@ module XSleenaCore_cpuA_B (
 	//when addresses are in the range 0x0-1FFF. If not always main cpu addresses are selected.
 
 	logic [3:0] ic4_Y;
+	logic [3:0] ic4_Y2;
 	//ttl_74157 A_2D({B3,A3,B2,A2,B1,A1,B0,A0})
     ttl_74157 #(.DELAY_RISE(0), .DELAY_FALL(0)) ic4 (.Enable_bar(1'b0), .Select(ic64a),
-                .A_2D({AB[3],subcpu_A[3],AB[2],subcpu_A[2],AB[1],subcpu_A[1],AB[0],subcpu_A[0]}), .Y(ic4_Y));
+                .A_2D({AB[3],subcpu_A[3],AB[2],subcpu_A[2],AB[1],subcpu_A[1],AB[0],subcpu_A[0]}), .Y(ic4_Y2));
 	
 	logic [3:0] ic3_Y;
+	logic [3:0] ic3_Y2;
 	ttl_74157 #(.DELAY_RISE(0), .DELAY_FALL(0)) ic3 (.Enable_bar(1'b0), .Select(ic64a),
-                .A_2D({AB[7],subcpu_A[7],AB[6],subcpu_A[6],AB[5],subcpu_A[5],AB[4],subcpu_A[4]}), .Y(ic3_Y));
+                .A_2D({AB[7],subcpu_A[7],AB[6],subcpu_A[6],AB[5],subcpu_A[5],AB[4],subcpu_A[4]}), .Y(ic3_Y2));
 
 	logic [3:0] ic2_Y;
+	logic [3:0] ic2_Y2;
 	ttl_74157 #(.DELAY_RISE(0), .DELAY_FALL(0)) ic2 (.Enable_bar(1'b0), .Select(ic64a),
-                .A_2D({AB[11],subcpu_A[11],AB[10],subcpu_A[10],AB[9],subcpu_A[9],AB[8],subcpu_A[8]}), .Y(ic2_Y));
+                .A_2D({AB[11],subcpu_A[11],AB[10],subcpu_A[10],AB[9],subcpu_A[9],AB[8],subcpu_A[8]}), .Y(ic2_Y2));
 
 
 	logic ic75c; //OR gate
 	assign  ic75c = (COMRn | ic6b);
 
 	logic [1:0] ic16_Y;
+	logic [1:0] ic16_Y2;
 	ttl_74157 #(.BLOCKS(2), .DELAY_RISE(0), .DELAY_FALL(0)) ic16 (.Enable_bar(1'b0), .Select(ic64a),
-                .A_2D({ic75c, ic75b,AB[12],subcpu_A[12]}), .Y(ic16_Y));
+                .A_2D({ic75c, ic75b,AB[12],subcpu_A[12]}), .Y(ic16_Y2));
+
+	always_ff @(posedge clk) begin
+		ic4_Y <= ic4_Y2;
+		ic3_Y <= ic3_Y2;
+		ic2_Y <= ic2_Y2;
+		ic16_Y <= ic16_Y2;
+	end
 
 
 //****************************************
@@ -887,7 +913,8 @@ module XSleenaCore_cpuA_B (
 	// (.Clear_bar(1'b1), .Preset_bar(1'b1), .D(subcpu_D0), .Clk(ic18_Y[2]), .Q(ic56a_Q), .Q_bar()); //ROM bank switch
 	DFF_pseudoAsyncClrPre #(.W(1)) ic56a ( //ROM bank switch
 		.clk(clk),
-		.din(subcpu_Dout2[0]),
+//		.din(subcpu_Dout2[0]),
+		.din(subcpu_Dout[0]), //test without delay
 		.q(ic56a_Q),
 		.qn(),
 		.set(1'b0),    // active high

@@ -22,7 +22,7 @@ module core_top
     parameter DIO_MASK       = 4'h0,  //! Upper 4 bits of address
     parameter DIO_AW         = 25,    //! Address Width
     parameter DIO_DW         = 8,     //! Data Width (8 or 16 bits)
-    parameter DIO_DELAY      = 7,     //! Number of clock cycles to delay each write output
+    parameter DIO_DELAY      = 8,     //! Number of clock cycles to delay each write output
     parameter DIO_HOLD       = 4     //! Number of clock cycles to hold the ioctl_wr signal high
 
 )
@@ -310,8 +310,8 @@ module core_top
 
     // bridge host commands
     // synchronous to clk_74a
-    wire        status_boot_done  = pll_core_locked_s;
-    wire        status_setup_done = pll_core_locked_s; // rising edge triggers a target command
+    wire        status_boot_done  = pll_core_locked_s; //pll_core_locked_s;
+    wire        status_setup_done = pll_core_locked_s; //pll_core_locked_s; // rising edge triggers a target command
     wire        status_running    = reset_n;           // we are running as soon as reset_n goes high
 
     wire        dataslot_requestread;
@@ -509,7 +509,7 @@ module core_top
     (
         .clk_sys    ( clk_sys         ),
         .os_inmenu  ( osnotify_inmenu ),
-        .pause_req  ( pause_req       ),
+        .pause_req  ( pause_req | toggle_credits_pause),
         .pause_core ( pause_core      )
     );
 
@@ -619,21 +619,23 @@ module core_top
     video_mixer #(
         .RW                       ( BPP_R                    ), // [p]
         .GW                       ( BPP_G                    ), // [p]
-        .BW                       ( BPP_B                    )  // [p]
+        .BW                       ( BPP_B                    ),  // [p]
+        .EN_INTERLACED            ( 0                        )
     ) u_pocket_video_mixer (
         // Clocks
-        .clk_74a                  ( clk_74a                  ), // [i]
         .clk_sys                  ( clk_sys                  ), // [i]
         .clk_vid                  ( clk_vid                  ), // [i]
         .clk_vid_90deg            ( clk_vid_90deg            ), // [i]
-        // Input Controls
+        .reset                    ( reset                    ), // [i]
+        // DIP Switch for Configuration
+        .video_sw                 ( 32'd0                    ), // [i]
+        // Display Controls
         .grayscale_en             ( grayscale_en             ), // [i]
-        .video_preset             ( video_preset             ), // [i]
-        .scnl_sw                  ( scnl_sw                  ), // [i]
-        .smask_sw                 ( smask_sw                 ), // [i]
-         // Interlaced Video Controls
-        .field                    ( field                    ), // [i]
-        .interlaced               ( interlaced               ), // [i]
+        .blackout_en              ( 0                        ), // [i]
+        .video_preset             ( 3'd0       ), // [i]
+        // Interlaced Video Controls
+        .field                    ( 0                        ), // [i]
+        .interlaced               ( 0                        ), // [i]
         // Input Video from Core
         .core_r                   ( video_rgb_xain[23:16]    ), // [i]
         .core_g                   ( video_rgb_xain[15:8]     ), // [i]
@@ -649,15 +651,9 @@ module core_top
         .video_de                 ( video_de                 ), // [o]
         .video_skip               ( video_skip               ), // [o]
         .video_rgb_clock          ( video_rgb_clock          ), // [o]
-        .video_rgb_clock_90       ( video_rgb_clock_90       ), // [o]
-        // Input Video from Core
-        .vga_r                    ( ), // [o]
-        .vga_g                    ( ), // [o]
-        .vga_b                    ( ), // [o]
-        .vga_vs                   ( ), // [o]
-        .vga_hs                   ( ), // [o]
-        .vga_de                   ( )  // [o]
+        .video_rgb_clock_90       ( video_rgb_clock_90       )  // [o]
     );
+
     //!-------------------------------------------------------------------------
     //! Data I/O
     //!-------------------------------------------------------------------------
@@ -689,6 +685,50 @@ module core_top
         .ioctl_addr               ( ioctl_addr               ), // [o]
         .ioctl_data               ( ioctl_data               )  // [o]
     );
+
+    // logic        loader_busy;
+    // logic [15:0] loader_cycles_left;
+
+    // data_io_wrapper #(.MASK(DIO_MASK),.AW(DIO_AW),.DW(DIO_DW),.DELAY(DIO_DELAY),.HOLD(DIO_HOLD)) u_pocket_data_io
+    // (
+    //     // Clocks and Reset
+    //     .clk_74a                  ( clk_74a                  ), // [i]
+    //     .clk_memory               ( clk_sys                  ), // [i]
+    //     .reset                    ( 1'b0                     ), // [i]
+    //     // Pocket Bridge Slots
+    //     .dataslot_requestwrite    ( dataslot_requestwrite    ), // [i]
+    //     .dataslot_requestwrite_id ( dataslot_requestwrite_id ), // [i]
+    //     .dataslot_allcomplete     ( dataslot_allcomplete     ), // [i]
+    //     // MPU -> FPGA (MPU Write to FPGA)
+    //     // Pocket Bridge
+    //     .bridge_endian_little     ( bridge_endian_little     ), // [i]
+    //     .bridge_addr              ( bridge_addr              ), // [i]
+    //     .bridge_wr                ( bridge_wr                ), // [i]
+    //     .bridge_wr_data           ( bridge_wr_data           ), // [i]
+    //     // Controller Interface
+    //     .ioctl_download           ( ioctl_download           ), // [o]
+    //     .ioctl_index              ( ioctl_index              ), // [o]
+    //     .ioctl_wr                 ( ioctl_wr                 ), // [o]
+    //     .ioctl_addr               ( ioctl_addr               ), // [o]
+    //     .ioctl_data               ( ioctl_data               ),  // [o]
+    //       // señales de control para refresco
+    //     .loader_busy              ( loader_busy              ), // [o]
+    //     .loader_cycles_left       ( loader_cycles_left       )  // [o]
+    // );
+
+    // // Durante la fase de carga de datos en SDRAM, se gestiona el refresco de la memoria
+    // logic doRefresh;
+
+    // refresh_arbiter #(
+    // .CLK_FREQ_HZ(48_000_000),
+    // .TREFI_US(7.8)
+    // ) arb (
+    // .clk(clk_sys),
+    // .reset(1'b0),
+    // .loader_busy(loader_busy),
+    // .loader_cycles_left(loader_cycles_left),
+    // .doRefresh(doRefresh)
+    // );
 
 //! ------------------------------------------------------------------------
     //! Clocks
@@ -768,11 +808,11 @@ module core_top
     assign video_timing = video_timing_t'(vid_mode_s);
 
     reg reconfig_pause = 0;
-    logic [1:0] vid_mode;
-    wire [1:0] vid_mode_s;
+    logic vid_mode;
+    wire  vid_mode_s;
 
-    always @(posedge clk_sys) begin
-        vid_mode <= {1'b0,mod_sw0[2]};
+    always @(posedge clk_74a) begin
+        vid_mode <= mod_sw0[2];
     end
 
     always @(posedge clk_74a) begin
@@ -785,14 +825,18 @@ module core_top
             pll_init_locked <= 1;
             if (&reconfig) begin // do reconfig
                 case(video_timing_lat)
-                VIDEO_57HZ: begin
-                    cfg_address <= PLL_57HZ[param_idx * 2 + 0][5:0];
-                    cfg_data    <= PLL_57HZ[param_idx * 2 + 1];
-                end
-                VIDEO_60HZ: begin
-                    cfg_address <= PLL_60HZ[param_idx * 2 + 0][5:0];
-                    cfg_data    <= PLL_60HZ[param_idx * 2 + 1];
-                end
+                    VIDEO_57HZ: begin
+                        cfg_address <= PLL_57HZ[param_idx * 2 + 0][5:0];
+                        cfg_data    <= PLL_57HZ[param_idx * 2 + 1];
+                    end
+                    VIDEO_60HZ: begin
+                        cfg_address <= PLL_60HZ[param_idx * 2 + 0][5:0];
+                        cfg_data    <= PLL_60HZ[param_idx * 2 + 1];
+                    end
+                    default: begin
+                        cfg_address <= PLL_57HZ[param_idx * 2 + 0][5:0];
+                        cfg_data    <= PLL_57HZ[param_idx * 2 + 1];
+                    end
                 endcase
 
                 cfg_write <= 1;
@@ -814,27 +858,29 @@ module core_top
 
     wire reset = reset_sw | ~pll_init_locked_s;
     wire pll_init_locked_s;
+
     // Synchronize pll_core_locked into clk_sys domain before usage
     synch_3 sync_lck(pll_init_locked, pll_init_locked_s, clk_sys);
 
     // Synchronize pll_core_locked into clk_74a domain before usage
-    synch_3 sync_lck2(pll_core_locked, pll_core_locked_s, clk_74a);
+    synch_3 sync_lck2(pll_core_locked, pll_core_locked_s, clk_sys);
 
     // Synchronize reconfig_paus into clk_sys domain before usage
     wire reconfig_pause_s;
     synch_3 sync_reconfpause(reconfig_pause, reconfig_pause_s, clk_sys);
 
     //Synchronize vid_mode into clk_74a domain before usage
-    synch_3 #(.WIDTH(2)) sync_vid_mode(vid_mode, vid_mode_s, clk_74a);
+    synch_3 #(.WIDTH(1)) sync_vid_mode(vid_mode, vid_mode_s, clk_74a);
 
 //Xain'd Sleena uses only one set of game controls and 2 start buttons that are needed for play a continue
 logic [7:0] PLAYER1, PLAYER2;
 logic SERVICE;
 //All inputs are active low except SERVICE
-//               {2P,1P,1PSW2,1PSW1,1PD,1PU,1PL,1PR}              
-assign PLAYER1 = {p2_controls[15],p1_controls[15],p1_controls[5],p1_controls[4],p1_controls[1],p1_controls[0],p1_controls[2],p1_controls[3]};
+// Player 2 START is mapped also to Player 1 L1 button
+//               {2P,1P,1PSW2,1PSW1,1PD,1PU,1PL,1PR} 
+assign PLAYER1 = {~{p2_controls[15] | p1_controls[8]}, ~p1_controls[15],~p1_controls[5],~p1_controls[4],~p1_controls[1],~p1_controls[0],~p1_controls[2],~p1_controls[3]};
 //               {COIN2,COIN1,2PSW2,2PSW1,2PD,2PU,2PL,2PR}             
-assign PLAYER2 = {p2_controls[14],p1_controls[14],p2_controls[5],p2_controls[4],p2_controls[1],p2_controls[0],p2_controls[2],p2_controls[3]};
+assign PLAYER2 = {~p2_controls[14],                   ~p1_controls[14],~p2_controls[5],~p2_controls[4],~p2_controls[1],~p2_controls[0],~p2_controls[2],~p2_controls[3]};
 assign SERVICE = 1'b1; //Not used in game
 
 //Xain_top interface
@@ -846,18 +892,29 @@ logic hsync_core, vsync_core;
 logic csync_core;
 logic ce_pixel_core;
 
-xain_top u_xain_top (
+
+// logic reset_core;
+// assign reset_core = reset | ~dataslot_allcomplete; 
+// logic rc2, rc3;
+// always @(posedge clk_sys) begin
+//     rc2 <= reset_core;
+//     rc3 <= rc2;
+//end
+
+xain_top #(.DBG_VIDEO(0)) xs_top(
     // Clocks & Reset
     .clk            (clk_sys),             // System clock
     .reset          (reset),           // Reset
-    .init(~pll_init_locked_s),            // SDRAM Initialization
-	.pause(pause_core | reconfig_pause_s),
+    .init(~pll_core_locked_s),            // SDRAM Initialization
+	.pause((pause_core & ~reset) | reconfig_pause_s),
+    .credits(toggle_credits_pause), // Pause for credits (R1 button)
+    //.pause(1'b0),
 
     // Modifiers
     .MODSW          (mod_sw0), //mod_sw0[1] X2 CPU turbo mode
     // Inputs
-    .DSW1           (dip_sw0),
-    .DSW2           (dip_sw1),
+    .DSW1           (~dip_sw0),
+    .DSW2           (~dip_sw1),
     .PLAYER1        (PLAYER1),
     .PLAYER2        (PLAYER2),
     .SERVICE        (SERVICE),
@@ -887,6 +944,8 @@ xain_top u_xain_top (
     .ioctl_data     (ioctl_data),
 
     // SDRAM Interface
+    //.doRefresh     (doRefresh), // Refresh request from arbiter
+    .doRefresh     (1'b1), // Refresh request from arbiter
     .sdr_clk        (clk_ram),
     .dram_dq        (dram_dq),
     .dram_a         (dram_a),
@@ -909,8 +968,8 @@ xain_top u_xain_top (
 
     //create aditional switch to blank Pocket screen.
     wire [23:0] video_rgb_xain;
-    //assign video_rgb_xain = (pocket_blank_screen && !analogizer_ena) ? 24'h000000: {video_r_core,video_g_core,video_b_core};
-    assign video_rgb_xain = {video_r_core,video_g_core,video_b_core};
+    assign video_rgb_xain = (pocket_blank_screen && !analogizer_ena) ? 24'h000000: {video_r_core,video_g_core,video_b_core};
+    //assign video_rgb_xain = {video_r_core,video_g_core,video_b_core};
 
     //switch between Analogizer SNAC and Pocket Controls for P1-P4 (P3,P4 when uses PCEngine Multitap)
     wire [15:0] p1_btn, p2_btn, p3_btn, p4_btn;
@@ -954,8 +1013,8 @@ xain_top u_xain_top (
         reg [31:0] p1_pocket_btn, p1_pocket_joy;
         reg [31:0] p2_pocket_btn, p2_pocket_joy;
 
-        //if((snac_game_cont_type == 5'h0) || !analogizer_ena) begin //SNAC is disabled
-        if((snac_game_cont_type == 5'h0)) begin //SNAC is disabled
+        if((snac_game_cont_type == 5'h0) || !analogizer_ena) begin //SNAC is disabled
+        //if((snac_game_cont_type == 5'h0)) begin //SNAC is disabled
             p1_controls <= cont1_key;
             p2_controls <= cont2_key;
         end
@@ -1062,8 +1121,9 @@ xain_top u_xain_top (
     logic [5:0]	hoffset = 5'h0;
     logic [4:0]	voffset = 4'h0;
 
-    logic start_r, up_r, down_r, left_r, right_r, btnA_r;
+    logic start_r, up_r, down_r, left_r, right_r, btnA_r, p1r1_r, p2r1_r;
 
+    logic toggle_credits_pause = 0;
     always_ff @(posedge clk_sys) begin 
        start_r <= p1_controls[15];
        up_r    <= p1_controls[0];
@@ -1071,90 +1131,98 @@ xain_top u_xain_top (
        left_r  <= p1_controls[2];
        right_r <= p1_controls[3]; 
        btnA_r  <= p1_controls[4];
+       p1r1_r    <= p1_controls[9]; //R1 button toggles credits
+       p2r1_r    <= p2_controls[9]; //R1 button toggles credits
+
+       if(reset) toggle_credits_pause <= 1'b0;
+       else if((p1_controls[9] & ~p1r1_r) | (p2_controls[9] & ~p2r1_r)) begin //R1 button pressed
+            toggle_credits_pause <= ~toggle_credits_pause;
+       end
     end
-//    wire HSync,VSync;
-//    jtframe_resync jtframe_resync
-//    (
-//        .clk(clk_sys),
-//        .pxl_cen(ce_pixel_core),
-//        .hs_in(hsync_core),
-//        .vs_in(vsync_core),
-//        .LVBL(~vblank_core),
-//        .LHBL(~hblank_core),
-//        .hoffset(hoffset), //5bits signed
-//        .voffset(voffset), //5bits signed
-//        .hs_out(HSync),
-//        .vs_out(VSync)
-//    );
+   wire HSync,VSync;
+   jtframe_resync jtframe_resync
+   (
+       .clk(clk_sys),
+       .pxl_cen(ce_pixel_core),
+       .hs_in(hsync_core),
+       .vs_in(vsync_core),
+       .LVBL(~vblank_core),
+       .LHBL(~hblank_core),
+       .hoffset(hoffset), //5bits signed
+       .voffset(voffset), //5bits signed
+       .hs_out(HSync),
+       .vs_out(VSync)
+   );
 
     //Debug OSD: shows Xoffset and Yoffset values and the detected video resolution for Analogizer
     wire [7:0] RGB_out_R, RGB_out_G, RGB_out_B;
     wire HS_out, VS_out, HB_out, VB_out;
 
-//    osd_top #(
-//    .CLK_HZ(48_000_000),
-//    .DURATION_SEC(4)
-//    ) osd_debug_inst (
-//        .clk(clk_sys),
-//        .reset(reset),
-//        .pixel_ce(ce_pixel_core),
-//        .R_in(video_r_core),
-//        .G_in(video_g_core),
-//        .B_in(video_b_core),
-//        .hsync_in(HSync),
-//        .vsync_in(VSync),
-//        .hblank(hblank_core),
-//        .vblank(vblank_core),
-//        .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
-//        .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
-//        .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
-//        .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
-//        .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
-//        .R_out(RGB_out_R),
-//        .G_out(RGB_out_G),
-//        .B_out(RGB_out_B),
-//        .hsync_out(HS_out),
-//        .vsync_out(VS_out),
-//        .hblank_out(HB_out),
-//        .vblank_out(VB_out),
-//        .h_offset_out(hoffset),
-//        .v_offset_out(voffset),
-//        .analogizer_ready(!busy),
-//        .analogizer_video_type(analogizer_video_type),
-//        .snac_game_cont_type(snac_game_cont_type),
-//        .snac_cont_assignment(snac_cont_assignment),
-//        .vid_mode_out(vid_mode),
-//        .osd_pause_out (pause_req)
-//    );
+   osd_top #(
+   .CLK_HZ(48_000_000),
+   .DURATION_SEC(4)
+   ) osd_debug_inst (
+       .clk(clk_sys),
+       .reset(reset),
+       .pixel_ce(ce_pixel_core),
+       .R_in(video_r_core),
+       .G_in(video_g_core),
+       .B_in(video_b_core),
+       .hsync_in(HSync),
+       .vsync_in(VSync),
+       .hblank(hblank_core),
+       .vblank(vblank_core),
+       .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
+       .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
+       .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
+       .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
+       .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
+       .R_out(RGB_out_R),
+       .G_out(RGB_out_G),
+       .B_out(RGB_out_B),
+       .hsync_out(HS_out),
+       .vsync_out(VS_out),
+       .hblank_out(HB_out),
+       .vblank_out(VB_out),
+       .h_offset_out(hoffset),
+       .v_offset_out(voffset),
+       .analogizer_ready(!busy),
+       .analogizer_video_type(analogizer_video_type),
+       .snac_game_cont_type(snac_game_cont_type),
+       .snac_cont_assignment(snac_cont_assignment),
+       .vid_mode_in(vid_mode),
+       .osd_pause_out (pause_req)
+   );
 
     //32_000_000
     wire [31:0] analogizer_bridge_rd_data;
     wire busy;
+    wire VIDEO_DE = ~(hblank_core | vblank_core);
     openFPGA_Pocket_Analogizer #(.MASTER_CLK_FREQ(48_000_000), .LINE_LENGTH(256), .ADDRESS_ANALOGIZER_CONFIG(ADDRESS_ANALOGIZER_CONFIG)) analogizer (
         .clk_74a(clk_74a),
         .i_clk(clk_sys),
         .i_rst_apf(reset), //i_rst_apf is active high
         .i_rst_core(reset), //i_rst_core is active high
-        //.i_ena(analogizer_ena),
-        .i_ena(1'b1),
+        .i_ena(analogizer_ena),
+        //.i_ena(1'b1),
 
         //Video interface
-        // .video_clk(clk_sys),
-        // .R(RGB_out_R),
-        // .G(RGB_out_G),
-        // .B(RGB_out_B),
-        // .Hblank(HB_out),
-        // .Vblank(VB_out),
-        // .Hsync(HS_out), //composite SYNC on HSync.
-        // .Vsync(VS_out),
         .video_clk(clk_sys),
-        .R(video_r_core),
-        .G(video_g_core),
-        .B(video_b_core),
-        .Hblank(hblank_core),
-        .Vblank(vblank_core),
-        .Hsync(hsync_core), //composite SYNC on HSync.
-        .Vsync(vsync_core),
+        .R(RGB_out_R),
+        .G(RGB_out_G),
+        .B(RGB_out_B),
+        .Hblank(HB_out),
+        .Vblank(VB_out),
+        .Hsync(HS_out), //composite SYNC on HSync.
+        .Vsync(VS_out),
+        // .video_clk(clk_sys),
+        // .R(video_r_core),
+        // .G(video_g_core),
+        // .B(video_b_core),
+        // .Hblank(hblank_core),
+        // .Vblank(vblank_core),
+        // .Hsync(hsync_core), //composite SYNC on HSync.
+        // .Vsync(vsync_core),
         //openFPGA Bridge interface
         .bridge_endian_little(bridge_endian_little),
         .bridge_addr(bridge_addr),

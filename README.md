@@ -1,5 +1,5 @@
 # Xain'd Sleena Pocket OpenFPGA Core by RndMnkIII:
-[1.0 31/05/2025] Initial release with support for Analogizer adapter.
+[0.1.0 22/05/2026] Initial release with support for Analogizer adapter.
 
 ![Xaind Sleena](/doc/full_size_xain.jpg)
 
@@ -28,6 +28,10 @@ This Analogizer core uses a configuration file to select Analogizer adapter rema
 
 This utility allows you to do a few things beyond the usual SNAC controller type and assignment, or video output type and blank of the Pocket screen.
 
+### Game Controls:
+This game uses Player1 controls for both P1 and P2 players. The only exception is the continue button that is Player2 Start. For ease of use I've
+mapped to Player2 Start to Player1 L1 button. Can be used also Player2 Start button if you have two game controllers connected.
+The R1 button shows/hides the Top 10 Ko-fi contributors (this comes from the original MiSTer development that was sponsored using Ko-fi sponsorship).
 
 ### OSD Controls:
 The current release allows to adjust Horizontal/Vertical offset of the image with a range of -15/+15 units using the combination of inputs Start + Up/Down/Left/Right

@@ -8,11 +8,12 @@ import xain_pkg::*;
 `define CPU_OVERCLOCK_HACK
 
 `default_nettype none
-module xain_top(
+module xain_top (
 	input  wire        clk,     //System clock
     input  wire        reset,               //! Reset
 	input  wire        init,
 	input  wire        pause,
+	input  wire        credits,
 
 	//modifiers
 	input wire [7:0] MODSW,
@@ -47,6 +48,7 @@ module xain_top(
     input  wire [24:0] ioctl_addr,
     input  wire [7:0]  ioctl_data,
 	//SDRAM interface
+	input  wire        doRefresh,
 	input  wire 	   sdr_clk,   //SDRAM clock
     inout  wire [15:0] dram_dq,   // 16 bit bidirectional data bus
     output reg [12:0]  dram_a,    // 13 bit multiplexed address bus
@@ -58,8 +60,9 @@ module xain_top(
     output wire        dram_cke,  // clock enable
     output wire        dram_clk   // clock for chip
 );
+	parameter DBG_VIDEO = 0; //1 to enable video debug output
 	parameter ROM_INDEX = 16'h1; //0 MiSTer FPGA, 1 Analogue Pocket
-	assign dram_clk = sdr_clk;
+	//assign dram_clk = sdr_clk;
 	
 	///////////////////////////////////////////////////////////////////////
 	// SDRAM
@@ -130,7 +133,8 @@ module xain_top(
 		.SDRAM_nRAS   (dram_ras_n),   // Row address select
 		.SDRAM_nCAS   (dram_cas_n),   // Column address select
 		.SDRAM_CKE    (dram_cke),    // Clock enable
-		.doRefresh(1),
+		.SDRAM_CLK    (dram_clk),    // Clock for chip
+		.doRefresh(doRefresh),
 		.init(init),
 		.clk(sdr_clk),
 	`ifdef CPU_OVERCLOCK_HACK
@@ -188,7 +192,7 @@ module xain_top(
 		.sdr_data(sdr_rom_data),
 		.sdr_be(sdr_rom_be),
 		.sdr_req(sdr_rom_req),
-		.sdr_rdy(sdr_rom_rdy),
+		.sdr_ack(sdr_rom_rdy),
 
 		.bram_addr(bram_addr),
 		.bram_data(bram_data),
@@ -204,7 +208,8 @@ module xain_top(
 	logic [3:0] VIDEO_4B;
 	logic HBLANK_CORE, VBLANK_CORE;
 	logic HSYNC_CORE, VSYNC_CORE;
-	
+	logic CE_PIX;
+
 	XSleenaCore xlc (
 		.CLK(clk),
 		.SDR_CLK(sdr_clk),
@@ -222,7 +227,7 @@ module xain_top(
 		.VIDEO_G(VIDEO_4G),
 		.VIDEO_B(VIDEO_4B),
 		.PIX_CLK(), //not used
-		.CE_PIXEL(CE_PIXEL),
+		.CE_PIXEL(CE_PIX),
 		.HBLANK(HBLANK_CORE), //NEGATIVE HBLANK
 		.VBLANK(VBLANK_CORE), //NEGATIVE VBLANK
 		.VSYNC(VSYNC_CORE), //NEGATIVE VSYNC
@@ -231,15 +236,15 @@ module xain_top(
 		
 		//Memory interface
 		//SDRAM
-		.sdr_mcpu_addr(sdr_mcpu_addr),
-		.sdr_mcpu_dout(sdr_mcpu_dout),
-		.sdr_mcpu_req(sdr_mcpu_req),
-		.sdr_mcpu_rdy(sdr_mcpu_rdy),
+		// .sdr_mcpu_addr(sdr_mcpu_addr),
+		// .sdr_mcpu_dout(sdr_mcpu_dout),
+		// .sdr_mcpu_req(sdr_mcpu_req),
+		// .sdr_mcpu_rdy(sdr_mcpu_rdy),
 
-		.sdr_scpu_addr(sdr_scpu_addr),
-		.sdr_scpu_dout(sdr_scpu_dout),
-		.sdr_scpu_req(sdr_scpu_req),
-		.sdr_scpu_rdy(sdr_scpu_rdy),
+		// .sdr_scpu_addr(sdr_scpu_addr),
+		// .sdr_scpu_dout(sdr_scpu_dout),
+		// .sdr_scpu_req(sdr_scpu_req),
+		// .sdr_scpu_rdy(sdr_scpu_rdy),
 
 		.sdr_obj_addr(sdr_obj_addr),
 		.sdr_obj_dout(sdr_obj_dout),
@@ -276,20 +281,44 @@ module xain_top(
 		//.CUNT1(CUNT1),
 		//.CUNT2(CUNT2),
 		.pause_rq(pause),
+		.credits(credits),
 		//HACKS
 		.CPU_turbo_mode(MODSW[1])
 	);
 
 
 	//Reverse polarity of blank/sync signals for MiSTer
-	assign HBLANK =  ~HBLANK_CORE;
-	assign VBLANK =  ~VBLANK_CORE;
-	assign HSYNC =   HSYNC_CORE;
-	assign VSYNC =  ~VSYNC_CORE;
+//	assign HBLANK =  ~HBLANK_CORE;
+//	assign VBLANK =  ~VBLANK_CORE;
+//	assign HSYNC =   HSYNC_CORE;
+//	assign VSYNC =  ~VSYNC_CORE;
 
 
-	XSleenaCore_RGB4bitLUT R_LUT( .COL_4BIT(VIDEO_4R), .COL_8BIT(VIDEO_R));
-	XSleenaCore_RGB4bitLUT G_LUT( .COL_4BIT(VIDEO_4G), .COL_8BIT(VIDEO_G));
-	XSleenaCore_RGB4bitLUT B_LUT( .COL_4BIT(VIDEO_4B), .COL_8BIT(VIDEO_B));
+	logic [7:0] VIDEO_R2, VIDEO_G2, VIDEO_B2;
+	logic DE /* synthesis keep */;
+	assign DE = HBLANK_CORE & VBLANK_CORE; //Data Enable, active when not in HBLANK or VBLANK
+generate
+    if (DBG_VIDEO) begin
+		assign VIDEO_G2  = 8'hAA; //10101010 bit pattern for debug
+    end
+	else begin
+		XSleenaCore_RGB4bitLUT G_LUT( .COL_4BIT(VIDEO_4G), .COL_8BIT(VIDEO_G2));
+	end
+endgenerate
+
+	XSleenaCore_RGB4bitLUT R_LUT( .COL_4BIT(VIDEO_4R), .COL_8BIT(VIDEO_R2));
+	XSleenaCore_RGB4bitLUT B_LUT( .COL_4BIT(VIDEO_4B), .COL_8BIT(VIDEO_B2));
+
+
+	always @(posedge clk) begin
+		CE_PIXEL <= CE_PIX;
+		VIDEO_R  <= VIDEO_R2 & {8{DE}};
+		VIDEO_G  <= VIDEO_G2 & {8{DE}};
+		VIDEO_B  <= VIDEO_B2 & {8{DE}};
+		HBLANK   <=  ~HBLANK_CORE;
+		VBLANK   <=  ~VBLANK_CORE;
+		HSYNC    <=   HSYNC_CORE;
+		VSYNC    <=  ~VSYNC_CORE;
+	end
 
 endmodule

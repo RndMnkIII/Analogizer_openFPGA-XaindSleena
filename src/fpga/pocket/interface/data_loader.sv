@@ -87,11 +87,11 @@ module data_loader
     dcfifo #(
         .clocks_are_synchronized ( "FALSE"     ),
         .intended_device_family  ( "Cyclone V" ),
-        .lpm_numwords            ( 4           ),
+        .lpm_numwords            ( 8           ),
         .lpm_showahead           ( "OFF"       ),
         .lpm_type                ( "dcfifo"    ),
         .lpm_width               ( FIFO_SIZE   ),
-        .lpm_widthu              ( 2           ),
+        .lpm_widthu              ( 3           ),
         .overflow_checking       ( "OFF"       ),
         .rdsync_delaypipe        ( 5           ),
         .underflow_checking      ( "OFF"       ),

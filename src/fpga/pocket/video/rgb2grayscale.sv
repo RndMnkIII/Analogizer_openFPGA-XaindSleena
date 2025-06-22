@@ -37,7 +37,7 @@
 (* altera_attribute = "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF" *)
 module rgb2grayscale
     #(
-         parameter            DW = 8
+         parameter int         DW = 8
      )(
          input  logic          clk,     //! System clock
          input  logic          enable,  //! Enable to activate Grayscale Image
@@ -47,7 +47,6 @@ module rgb2grayscale
          input  logic [DW-1:0] b_in,    //! Blue
          input  logic          hs_in,   //! Horizontal Sync
          input  logic          vs_in,   //! Vertical Sync
-         input  logic          de_in,   //! Horizontal Blank
          input  logic          hb_in,   //! Horizontal Blank
          input  logic          vb_in,   //! Vertical Blank
 
@@ -56,9 +55,9 @@ module rgb2grayscale
          output logic [DW-1:0] b_out,   //! Blue
          output logic          hs_out,  //! Horizontal Sync
          output logic          vs_out,  //! Vertical Sync
-         output logic          de_out,  //! Horizontal Blank
          output logic          hb_out,  //! Horizontal Blank
-         output logic          vb_out   //! Vertical Blank
+         output logic          vb_out,  //! Vertical Blank
+         output logic          de_out   //! Horizontal Blank
      );
 
     logic [8+DW-1:0] r_y, g_y, b_y; // Y Carries Luma
@@ -74,7 +73,7 @@ module rgb2grayscale
         vs_d <= vs_in;
         hb_d <= hb_in;
         vb_d <= vb_in;
-        de_d <= de_in;
+        de_d <= ~(hb_in | vb_in);
         if(enable) begin
             // Perform the ITU-R 601-2 luma transform
             // The weights 0.299, 0.587, and 0.114 are approximated by the fractions 76/256, 150/256, and 29/256, respectively.

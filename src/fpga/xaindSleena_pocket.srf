@@ -1,0 +1,1 @@
+{ "" "" "" "Synopsys Design Constraints File file not found: 'new_xain.sdc'. A Synopsys Design Constraints File is required by the Timing Analyzer to get proper timing constraints. Without it, the Compiler will not properly optimize the design." {  } {  } 0 332012 "" 0 0 "Design Software" 0 -1 0 ""}

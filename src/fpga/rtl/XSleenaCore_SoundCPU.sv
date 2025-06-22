@@ -278,7 +278,7 @@ module XSleenaCore_SoundCPU (
 	jt03 ic84(
 		.rst(~RSTn),      // rst active high, should be at least 6 clk&cen cycles long
 		.clk(clk),        // CPU clock
-		.cen(M1H_cen & ~pause_rq),       // optional clock enable, if not needed leave as 1'b1
+		.cen(M1H_cen & ~pause_rq & RSTn),       // optional clock enable, if not needed leave as 1'b1
 		.din(sndcpu_Dout),
 		.addr(SAB[0]),
 		.cs_n(OPN2n),

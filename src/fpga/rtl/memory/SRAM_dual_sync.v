@@ -21,23 +21,44 @@ module SRAM_dual_sync #(parameter DATA_WIDTH = 8, ADDR_WIDTH = 10)(
     output reg [DATA_WIDTH-1:0] Q1
     );
 
-    (* ramstyle = "no_rw_check" *) reg [DATA_WIDTH-1:0] mem[0:(2**ADDR_WIDTH)-1];
+    // (* ramstyle = "no_rw_check" *) reg [DATA_WIDTH-1:0] mem[0:(2**ADDR_WIDTH)-1];
+    
+    // always @(posedge clk0) begin
+    //     Q0 <=  mem[ADDR0];
+
+    //     if(cen0 && we0) begin
+    //         mem[ADDR0] <= DATA0;
+    //     end
+    // end
+
+
+    // always @(posedge clk1) begin
+    //     Q1 <=  mem[ADDR1];
+
+    //     if(cen1 && we1) begin
+    //         mem[ADDR1] <= DATA1;
+    //     end
+    // end
+    reg [DATA_WIDTH-1:0] mem[(2**ADDR_WIDTH)-1:0];
     
     always @(posedge clk0) begin
-        Q0 <=  mem[ADDR0];
-
         if(cen0 && we0) begin
             mem[ADDR0] <= DATA0;
+            Q0 <=  DATA0;
+        end
+        else begin
+            Q0 <=  mem[ADDR0];
         end
     end
 
 
     always @(posedge clk1) begin
-        Q1 <=  mem[ADDR1];
-
         if(cen1 && we1) begin
             mem[ADDR1] <= DATA1;
+            Q1 <=  DATA1;
+        end
+        else begin
+            Q1 <=  mem[ADDR1];
         end
     end
-
 endmodule

@@ -51,15 +51,15 @@ module XSleenaCore (
 	output logic VSYNC,
 
 	//Memory interface
-    output [24:0] sdr_mcpu_addr,
-    input [15:0] sdr_mcpu_dout,
-    output sdr_mcpu_req,
-    input sdr_mcpu_rdy,
+    // output [24:0] sdr_mcpu_addr,
+    // input [15:0] sdr_mcpu_dout,
+    // output sdr_mcpu_req,
+    // input sdr_mcpu_rdy,
 
-    output [24:0] sdr_scpu_addr,
-    input [15:0] sdr_scpu_dout,
-    output sdr_scpu_req,
-    input sdr_scpu_rdy,
+    // output [24:0] sdr_scpu_addr,
+    // input [15:0] sdr_scpu_dout,
+    // output sdr_scpu_req,
+    // input sdr_scpu_rdy,
 
     output [24:0] sdr_obj_addr,
     input [15:0] sdr_obj_dout,
@@ -97,9 +97,10 @@ module XSleenaCore (
 
 	//pause interface
 	input  wire  pause_rq,
+	input  wire credits,
 
 	//hacks interface
-	input wire [1:0] CPU_turbo_mode //{turbo_m,turbo_s}
+	input wire CPU_turbo_mode
 );
 	//Clocking signals
 	logic HCLK, HCLKn;
@@ -173,17 +174,22 @@ module XSleenaCore (
 		.m(8'd4),
 		.cen({HCLK_CEN, CLK12_CEN})
 	);
+	// 	jtframe_frac_cen_rst #(.WC(8), .W(2)) xs_clkcen
+	// (
+	// 	.clk(CLK),
+	// 	.rst(~RSTn),
+	// 	.n(8'd1),
+	// 	.m(8'd4),
+	// 	.cen({HCLK_CEN, CLK12_CEN})
+	// );
 
 	//CPU Turbo mode Hack
 	logic main_1x,  main_1xb; //M2H, M2Hn
 	logic main_2x,  main_2xb; //M1H, M1Hn
 	logic main_4x,  main_4xb; //HCLK, HCLKn
-	logic sub_1x,  sub_1xb;
-	logic sub_2x,  sub_2xb;
-	logic sub_4x,  sub_4xb;
 
-	always_comb begin //maincpu
-		case(CPU_turbo_mode[1])
+	always_comb begin //maincpu and subcpu (they are coupled by Q signal)
+		case(CPU_turbo_mode)
 			1'd0: begin //1.00x 
 				main_1x = M2H; main_2x = M1H; main_4x = _HCLK;
 				main_1xb = M2Hn; main_2xb = M1Hn; main_4xb = _HCLKn;
@@ -191,19 +197,6 @@ module XSleenaCore (
 			1'd1: begin //2.00x
 				main_1x = M1H; main_2x = _HCLK; main_4x = CLK12_CEN;
 				main_1xb = M1Hn; main_2xb = _HCLKn; main_4xb = ~CLK12_CEN;
-			end
-		endcase
-	end
-
-	always_comb begin //subcpu
-		case(CPU_turbo_mode[0])
-			1'd0: begin //1.00x 
-				sub_1x = M2H; sub_2x = M1H; sub_4x = _HCLK;
-				sub_1xb = M2Hn; sub_2xb = M1Hn; sub_4xb = _HCLKn;
-			end
-			1'd1: begin //2.00x
-				sub_1x = M1H; sub_2x = _HCLK; sub_4x = CLK12_CEN;
-				sub_1xb = M1Hn; sub_2xb = _HCLKn; sub_4xb = ~CLK12_CEN;
 			end
 		endcase
 	end
@@ -245,15 +238,18 @@ module XSleenaCore (
 	logic last_HCLKn;
 	always @(posedge CLK) begin
 		last_HCLKn <= HCLKn;
+		//HCLKn_CEN  <= ~last_HCLKn & HCLKn;
 		//HCLKn_CEN <= 1'b0;
 		//if(!last_HCLKn && HCLKn) HCLKn_CEN <= 1'b1;
 	end
 	assign HCLKn_CEN = ~last_HCLKn & HCLKn;
 
+
+
 	XSleenaCore_CLK xs_clk( 
 		.clk(CLK), //48MHz or 60MHz
 		.clk_12_cen(CLK12_CEN),
-		.RSTn(RSTn),
+		.RSTn(RSTn_synced[3]),
 		.P1_P2n(_P1_P2n),
 		//clocks
 		//H counter signals
@@ -318,7 +314,7 @@ module XSleenaCore (
 		.clk_ram(SDR_CLK),
 		//CPU Clocking
 		.main_2xb(main_2xb),
-		.RESETn(RSTn),
+		.RESETn(RSTn_synced[3]),
 		.M1Hn(M1Hn),
 		.AB(AB[10:0]),
 		.DHPOS(DHPOS),
@@ -382,7 +378,7 @@ module XSleenaCore (
 		.bram_addr(bram_addr),
 		.bram_cs(bram_cs[3]),
 		//greetings interface
-		.show_kofi(pause_rq)
+		.show_kofi(credits)
 	);
 
 	//Schematics pages: 3A,4A,5A,6A
@@ -474,9 +470,19 @@ module XSleenaCore (
 // `endif
 	
 	//Schematics pages: 1B,2B 
+	logic sync_rst;
+
+
+	logic [3:0] RSTn_synced;
+
+	always_ff @(posedge CLK) begin
+		if (sync_rst) begin
+			RSTn_synced <= {RSTn_synced[2:0],RSTn};
+		end
+	end
     XSleenaCore_cpuA_B xs_cpuAB( 
 		.clk(CLK),
-		.clk_ram(SDR_CLK),
+		//.clk_ram(SDR_CLK),
 		.clk12M_cen(CLK12_CEN),
 		//CPU clocking
 		.main_4x(main_4x),
@@ -485,14 +491,8 @@ module XSleenaCore (
 		.main_2xb(main_2xb),
 		.main_1x(main_1x),
 		.main_1xb(main_1xb),
-		.sub_4x(sub_4x),
-		.sub_4xb(sub_4xb),
-		.sub_2x(sub_2x),
-		.sub_2xb(sub_2xb),
-		.sub_1x(sub_1x),
-		.sub_1xb(sub_1xb),
 
-  	    .RSTn(RSTn),
+  	    .RSTn(RSTn_synced[3]),
 		.VBLK(VBLK),
 	    .W3A09n(W3A09n), //maincpu NMI clear
 	    .W3A0Bn(W3A0Bn), //maincpu IRQ clear
@@ -518,27 +518,28 @@ module XSleenaCore (
         .PLSELn(PLSELn),
         .WDn(WDn),
 		//SDRAM ROM interface
-		.sdr_addr_a(sdr_mcpu_addr),
-		.sdr_req_a(sdr_mcpu_req),
-		.sdr_rdy_a(sdr_mcpu_rdy),
-		.sdr_data_a(sdr_mcpu_dout),
-		.sdr_addr_b(sdr_scpu_addr),
-		.sdr_req_b(sdr_scpu_req),
-		.sdr_rdy_b(sdr_scpu_rdy),
-		.sdr_data_b(sdr_scpu_dout),
+		// .sdr_addr_a(sdr_mcpu_addr),
+		// .sdr_req_a(sdr_mcpu_req),
+		// .sdr_rdy_a(sdr_mcpu_rdy),
+		// .sdr_data_a(sdr_mcpu_dout),
+		// .sdr_addr_b(sdr_scpu_addr),
+		// .sdr_req_b(sdr_scpu_req),
+		// .sdr_rdy_b(sdr_scpu_rdy),
+		// .sdr_data_b(sdr_scpu_dout),
 		//ROM interface
 		.bram_wr(bram_wr),
 		.bram_data(bram_data),
 		.bram_addr(bram_addr),
 		.bram_cs(bram_cs[1:0]), //MAIN+SUB CPUs ROM CODE
 		//pause
-		.pause_rq(pause_rq)
+		.pause_rq(pause_rq),
+		.sync_rst(sync_rst)
     );
 
 	//Schematics pages: 3B 
 	XSleenaCore_IO xs_io(
 		.clk(CLK),
-		.RSTn(RSTn),
+		.RSTn(RSTn_synced[3]),
 		.AB(AB[3:0]), //maincpu address bus 0x0000-0x7fff
 		.IOn(IOn),
 		.RW(RW),
@@ -588,7 +589,7 @@ module XSleenaCore (
 		//CPU Clocking
 		.main_2xb(main_2xb),
 
-		.RESETn(RSTn),
+		.RESETn(RSTn_synced[3]),
 		.M1Hn(M1Hn),
 		.AB(AB[10:0]),
 		.DHPOS(DHPOS),
@@ -669,7 +670,7 @@ module XSleenaCore (
 	.clk(CLK),
 	.HCLK(HCLK), //6MHz
 	.M1H(M1H),
-  	.RSTn(RSTn),
+  	.RSTn(RSTn_synced[3]),
 	.W3A08n(W3A08n), //Sound latch
 	.DB_in(DB_out),
 	.snd1(snd1), //combined FM+PSG

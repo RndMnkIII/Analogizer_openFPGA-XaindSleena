@@ -11,7 +11,7 @@
 module osd_overlay_4bpp #(
     parameter int CHAR_WIDTH  = 8,
     parameter int CHAR_HEIGHT = 8,
-    parameter int SCREEN_COLS = 48,
+    parameter int SCREEN_COLS = 32,
     parameter int SCREEN_ROWS = 32
 )(
     input  logic        clk,           // Reloj maestro 32 MHz
@@ -72,7 +72,7 @@ module osd_overlay_4bpp #(
 
     // Acceso a ROM de fuente
     logic [31:0]  font_data;
-    osd_font_rom_4bpp #(.FONT_MEM_FILE("font_logo_color.mem")) font_inst (
+    osd_font_rom_4bpp #(.FONT_MEM_FILE("font_graffitti.mem")) font_inst (
         .clk(clk),
         .addr(font_addr),
         .data(font_data)
@@ -108,7 +108,7 @@ module osd_overlay_4bpp #(
         if ((color_index < 4'hf) && dar4 && osdar4) trans_col <= 1'b0; // 15 indice transparente de la paleta
     end
 
-	osd_font_color_pal #(.PAL_MEM_FILE("font_logo_pal.mem")) col_pal(
+	osd_font_color_pal #(.PAL_MEM_FILE("graffitti_pal.mem")) col_pal(
     .clk(clk),
     .addr(color_index),
     .R(color_out[23:16]), .G(color_out[15:8]), .B(color_out[7:0]));

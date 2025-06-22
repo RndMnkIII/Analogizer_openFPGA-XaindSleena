@@ -7,16 +7,16 @@
 # ==============================================================================
 # Set Input Delay
 # ==============================================================================
-set_input_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -max 6.4 [get_ports dram_dq[*]]
-set_input_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -min 3.1 [get_ports dram_dq[*]]
+# set_input_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -max 6.4 [get_ports dram_dq[*]]
+# set_input_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -min 3.1 [get_ports dram_dq[*]]
 
 # ==============================================================================
 # Set Output Delay
 # ==============================================================================
 # tDH, hold time, spec is 0.8ns
 # tDS, setup time, spec is 1.5ns
-set_output_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -min -0.8 [get_ports {dram_a[*] dram_ba[*] dram_cke dram_dqm[*] dram_dq[*] dram_ras_n dram_cas_n dram_we_n}]
-set_output_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -max 1.5 [get_ports {dram_a[*] dram_ba[*] dram_cke dram_dqm[*] dram_dq[*] dram_ras_n dram_cas_n dram_we_n}]
+# set_output_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -min -0.8 [get_ports {dram_a[*] dram_ba[*] dram_cke dram_dqm[*] dram_dq[*] dram_ras_n dram_cas_n dram_we_n}]
+# set_output_delay -clock { ic|core_pll|mf_pllbase_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } -max 1.5 [get_ports {dram_a[*] dram_ba[*] dram_cke dram_dqm[*] dram_dq[*] dram_ras_n dram_cas_n dram_we_n}]
 
 
 set_clock_groups -asynchronous \

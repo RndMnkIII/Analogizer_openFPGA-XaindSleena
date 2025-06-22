@@ -50,6 +50,8 @@ package xain_pkg;
 
     typedef enum bit[1:0] {
         VIDEO_57HZ = 2'd0,
-        VIDEO_60HZ = 2'd1
+        VIDEO_60HZ = 2'd1,
+        NO_VIDEO1 = 2'd2,
+        NO_VIDEO2 = 2'd3
     } video_timing_t;
 endpackage

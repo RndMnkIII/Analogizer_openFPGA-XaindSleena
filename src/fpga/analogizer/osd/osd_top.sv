@@ -13,7 +13,7 @@ import xain_pkg::*;
 module osd_top #(
     parameter int CLK_HZ = 32_000_000,
     parameter int DURATION_SEC = 4,
-    parameter int COLS = 48,
+    parameter int COLS = 32,
     parameter int ROWS = 32,
     parameter int CHAR_RAM_SIZE = COLS * ROWS
 )(
@@ -41,7 +41,7 @@ module osd_top #(
     output logic [2:0]   vblank_out,
     output logic signed [5:0] h_offset_out,
     output logic signed [4:0] v_offset_out,
-    output logic [1:0] vid_mode_out,
+    input logic        vid_mode_in,
     output logic osd_pause_out,
     //Analogizer settings
     input logic       analogizer_ready,
@@ -54,12 +54,12 @@ module osd_top #(
   logic [10:0] wr_addr, char_rd_addr;
   logic [7:0]  wr_data, char_code;
   logic        wr_en;
-  logic [1:0] vid_mode;
+  logic       vid_mode;
 
     char_ram_dualport #(
-        .ADDR_WIDTH(11),
+        .ADDR_WIDTH(10), //1024 posiciones (32x32 caracteres)
         .DATA_WIDTH(8),
-        .INIT_FILE("osd_analogizer_ram_logo2.mem")
+        .INIT_FILE("osd_analogizer_graffitti_32_32_RAM.mem")
     ) char_mem_inst (
         .clk(clk),
         .we_a(wr_en),
@@ -105,14 +105,14 @@ module osd_top #(
     logic [4:0] abs_val2;
     logic signed [4:0] val;
 
-    localparam int H_POS = 12 * COLS + 25;
-    localparam int V_POS = 13 * COLS + 25;
-    localparam int WIDTH_POS = 14 * COLS + 18;
-    localparam int HEIGHT_POS = 15 * COLS + 18;
-    localparam int VIDEO_POS = 16 * COLS + 18;
-    localparam int SNAC_DEV_POS = 17 * COLS + 18;
-    localparam int SNAC_ASG_POS = 18 * COLS + 18;
-    localparam int HZ_POS = 3 * COLS + 43;
+    localparam int H_POS = 16 * COLS + 17;
+    localparam int V_POS = 17 * COLS + 17;
+    localparam int WIDTH_POS = 18 * COLS + 13;
+    localparam int HEIGHT_POS = 19 * COLS + 13;
+    localparam int VIDEO_POS = 20 * COLS + 13;
+    localparam int SNAC_DEV_POS = 21 * COLS + 13;
+    localparam int SNAC_ASG_POS = 22 * COLS + 13;
+    localparam int HZ_POS = 2 * COLS + 27;
 
     logic [10:0] wr_addr_manual;
     logic [7:0]  wr_data_manual;
@@ -140,7 +140,7 @@ module osd_top #(
             //start_str      <= 0;
         end else begin
             wr_en_manual <= 0;
-            //vid_mode <= 2'd0; //55Hz default
+            vid_mode <= vid_mode_in;
 
         
             //State machine para escribir valores en la RAM ya convertidos a formato ASCII
@@ -155,7 +155,7 @@ module osd_top #(
                         if (key_upr && (v_offset > -5'sd15)) v_offset <= v_offset + $signed(-5'sd1);
                         else if (key_downr && (v_offset < 5'sd15)) v_offset <= v_offset + $signed(5'sd1);
 
-                        if(key_A_r) vid_mode <= vid_mode + 2'd1;
+                        //if(key_A_r) vid_mode <= ~vid_mode;
                         
                         state <= INIT_WAIT;
                         wait_key <= 1;
@@ -188,7 +188,7 @@ module osd_top #(
                                     state    <= INIT_NEXT;
                                 end 
                                 3'd3: begin
-                                    str_index     <= {4'b0,vid_mode} + 6'd36; //see string_to_ram_writer
+                                    str_index     <= {5'b0,vid_mode} + 6'd36; //see string_to_ram_writer
                                     str_base_addr <= HZ_POS;
                                     data_info_idx <= data_info_idx + 1;
                                     start_str     <= 1;
@@ -417,5 +417,5 @@ module osd_top #(
     assign vblank_out = vblank_d2;
     assign h_offset_out = h_offset;
     assign v_offset_out = v_offset;
-    assign vid_mode_out = vid_mode;
+    //assign vid_mode_out = vid_mode;
 endmodule

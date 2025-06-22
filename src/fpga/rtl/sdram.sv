@@ -35,6 +35,7 @@ module sdram
     output            SDRAM_nRAS,  // row address select
     output            SDRAM_nCAS,  // columns address select
     output            SDRAM_CKE,   // clock enable
+    output            SDRAM_CLK,   // clock for chip
 
     input      [26:1] ch0a_addr,    // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
     output reg [15:0] ch0a_dout,    // data output to cpu
@@ -71,7 +72,7 @@ module sdram
 );
 parameter  MHZ = 16'd100; // 80 MHz default clock, set it to proper value to calculate refresh rate
 
-assign SDRAM_nCS  = chip;
+assign SDRAM_nCS  = command[3];
 assign SDRAM_nRAS = command[2];
 assign SDRAM_nCAS = command[1];
 assign SDRAM_nWE  = command[0];
@@ -92,20 +93,23 @@ localparam sdram_startup_cycles= 16'd12100;// 100us, plus a little more, @ 100MH
 
 // 64ms/8192 rows = 7.8us
 //localparam RFRSH_CYCLES = 16'd78*MHZ/4'd10;
-localparam cycles_per_refresh  = 16'd78*MHZ/4'd10; //16'd500;  // (64000*64)/8192-1 Calc'd as (64ms @ 64MHz)/8192 rose
+localparam cycles_per_refresh  = 16'd500; //16'd78*MHZ/4'd10; //16'd500;  // (64000*64)/8192-1 Calc'd as (64ms @ 64MHz)/8192 rose
 localparam startup_refresh_max = 16'b1111111111111111;
 
 // SDRAM commands
-wire [2:0] CMD_NOP             = 3'b111;
-wire [2:0] CMD_ACTIVE          = 3'b011;
-wire [2:0] CMD_READ            = 3'b101;
-wire [2:0] CMD_WRITE           = 3'b100;
-wire [2:0] CMD_PRECHARGE       = 3'b010;
-wire [2:0] CMD_AUTO_REFRESH    = 3'b001;
-wire [2:0] CMD_LOAD_MODE       = 3'b000;
+
+localparam CMD_INHIBIT         = 4'b1111;
+localparam CMD_NOP             = 4'b0111;
+localparam CMD_ACTIVE          = 4'b0011;
+localparam CMD_READ            = 4'b0101;
+localparam CMD_WRITE           = 4'b0100;
+localparam CMD_BURST_TERMINATE = 4'b0110;
+localparam CMD_PRECHARGE       = 4'b0010;
+localparam CMD_AUTO_REFRESH    = 4'b0001;
+localparam CMD_LOAD_MODE       = 4'b0000;
 
 reg [15:0] refresh_count = startup_refresh_max - sdram_startup_cycles;
-reg  [2:0] command;
+reg  [3:0] command;
 reg        chip;
 
 localparam STATE_STARTUP = 0;
@@ -209,14 +213,14 @@ always @(posedge clk) begin
 
     SDRAM_DQ <= 16'bZ;
 
-    command <= CMD_NOP;
+    command <= CMD_INHIBIT;
     case (state)
         STATE_STARTUP: begin
             SDRAM_A    <= 0;
             SDRAM_BA   <= 0;
 
-            if (refresh_count == (startup_refresh_max-64)) chip <= 0;
-            if (refresh_count == (startup_refresh_max-32)) chip <= 1;
+            // if (refresh_count == (startup_refresh_max-64)) chip <= 0;
+            // if (refresh_count == (startup_refresh_max-32)) chip <= 1;
 
             // All the commands during the startup are NOPS, except these
             if (refresh_count == startup_refresh_max-63 || refresh_count == startup_refresh_max-31) begin
@@ -262,7 +266,20 @@ always @(posedge clk) begin
                 command       <= CMD_AUTO_REFRESH;
                 refresh_count <= refresh_count - cycles_per_refresh + 1'd1;
                 chip          <= 0;
-            end 
+            end
+            else if(ch3_rq) begin
+                chip       <= ch3_addr_1[26];
+                saved_data <= ch3_din_1;
+                saved_wr   <= ~ch3_rnw_1;
+                ch         <= 4;
+                ch3_rq     <= 0;
+                if (ch3_rnw_1) 
+                    {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch3_addr_1[25:1]};
+                else
+                    {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {~ch3_be_1, 1'b1, ch3_addr_1[25:1]};
+                command    <= CMD_ACTIVE;
+                state      <= STATE_WAIT;
+            end
             else if(ch0a_rq) begin
                 {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch0a_addr[25:1]};
                 chip       <= ch0a_addr[26];
@@ -321,12 +338,12 @@ always @(posedge clk) begin
             //     command    <= CMD_ACTIVE;
             //     state      <= STATE_WAIT;
             // end
-            else if (doRefresh_1) begin
-                state         <= STATE_RFSH;
-                command       <= CMD_AUTO_REFRESH;
-                refresh_count <= 0;
-                chip          <= 0;
-            end
+            // else if (doRefresh_1) begin
+            //     state         <= STATE_RFSH;
+            //     command       <= CMD_AUTO_REFRESH;
+            //     refresh_count <= 0;
+            //     chip          <= 0;
+            // end
         end
 
         STATE_WAIT: state <= STATE_RW1;
@@ -363,4 +380,31 @@ always @(posedge clk) begin
         refresh_count <= startup_refresh_max - sdram_startup_cycles;
     end
 end
+
+
+//180degrees external SDRAM clk shift
+altddio_out
+#(
+    .extend_oe_disable("OFF"),
+    .intended_device_family("Cyclone V"),
+    .invert_output("OFF"),
+    .lpm_hint("UNUSED"),
+    .lpm_type("altddio_out"),
+    .oe_reg("UNREGISTERED"),
+    .power_up_high("OFF"),
+    .width(1) //Specify the width of the data buses.
+)
+sdramclk_ddr
+(
+    .datain_h(1'b0), //Input data for rising edge of outclock port. Input port WIDTH wide.
+    .datain_l(1'b1), //Input data for falling edge of outclock port. Input port WIDTH wide.
+    .outclock(clk), //Clock signal to register data output. dataout port outputs DDR data on each level of outclock signal.
+    .dataout(SDRAM_CLK), //	DDR output data port. Output port WIDTH wide. dataout port should directly feed an output pin in top-level design.
+    .aclr(1'b0),
+    .aset(1'b0),
+    .oe(1'b1), //Output enable for the dataout port. Active-high signal. You can add an inverter if you need an active-low oe.
+    .outclocken(1'b1), //	Clock enable for outclock port.
+    .sclr(1'b0),
+    .sset(1'b0)
+);
 endmodule

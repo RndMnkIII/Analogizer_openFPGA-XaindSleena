@@ -10,7 +10,7 @@ create_clock -name clk_74b -period 13.468 [get_ports clk_74b]
 create_clock -name bridge_spiclk -period 13.468 [get_ports bridge_spiclk]
 
 # autogenerate PLL clock names for use down below
-derive_pll_clocks -create_base_clocks
+derive_pll_clocks
 
 # Set Clock Uncertainty
 derive_clock_uncertainty

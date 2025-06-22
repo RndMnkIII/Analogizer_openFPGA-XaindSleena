@@ -15,10 +15,39 @@
 // Dependencies: Intended to be standalone Vanilla Verilog.
 //
 // Revision: 
-// Revision 1.0  - Initial Release
-// Revision 1.0s - Sinchronous version (by Sorgelig)
-// Additional Comments: 
+// Revision 1.0             - Initial Release
+// Revision 1.0s            - Sinchronous version (by Sorgelig)
+// Revision 1.1  06/22/2025 - Fixed a bug in the handling of interrupts just after exit from reset (by RndMnkIII).
 //
+// Additional Comments (Revision 1.1): 
+// I've introduced a fix for the handling of interrupts just after exit from reset
+// in the synchronous version of the 6809 core (mc6809is.v). The original code had a flaw where it would latch
+// interrupts immediately after the reset, even if they were active at that time. This could lead to
+// the core attempting to service an interrupt before executing valid code, potentially causing errors.
+// The fix ensures that interrupts are not latched immediately after reset, preventing the core from
+// servicing junk interrupts. The core now waits until the first falling edge of E after reset before
+// evaluating the IRQ/FIRQ/NMI lines, ensuring that any active interrupts at that time are not latched.
+//
+// If interrupts are detected too early:
+// If your core detects a valid FIRQ or IRQ during the first SYNC cycle after RESET (before the reset vector 
+// is executed and the flags are set), it may attempt to service an interrupt before executing valid code.
+//
+// This can cause the CPU to attempt to vector to an invalid or uninitialized address, causing errors such as:
+// - Accessing nonexistent addresses.
+//-  Executing junk code
+//
+// There is no logic to invalidate latched values ​​based on the RESET state, such as:
+
+//     if (!nRESET) begin
+//         IRQLatched <= 1'b1;
+//         FIRQLatched <= 1'b1;
+//         NMILatched <= 1'b1;
+//     end
+// This is what should be in place to avoid handling junk interrupts after reset.
+
+// Since there is no explicit reset, and since latched values ​​are fed directly from the IRQ/FIRQ/NMI lines (via sampling), 
+// if any of them are active immediately after the reset, they may remain active by the time the first SYNC is reached, 
+// even if the CCR masks are set correctly.
 //////////////////////////////////////////////////////////////////////////////////
 
 
@@ -534,15 +563,34 @@ endgenerate
 
 ///////////////////////////////////////////////////////////////////////
 
+// reg old_sample;
+// always @(posedge CLK)
+// begin
+	
+// 	old_sample <= NMISample2;
+
+//     if (wNMIClear == 1) NMILatched <= 1;
+//     else if(old_sample & ~NMISample2) NMILatched <= NMIMask;
+// end
+
+//RndMnkIII fix starts here//
 reg old_sample;
+
 always @(posedge CLK)
 begin
-	
-	old_sample <= NMISample2;
+	if (!nRESET) begin
+		NMILatched <= 1'b1; //no hay NMI pendiente justo tras reset
+		old_sample <= 1'b1;
+	end else begin
+		old_sample <= NMISample2;
 
-    if (wNMIClear == 1) NMILatched <= 1;
-    else if(old_sample & ~NMISample2) NMILatched <= NMIMask;
+		if (wNMIClear)
+			NMILatched <= 1;
+		else if (old_sample & ~NMISample2)
+			NMILatched <= NMIMask;
+	end
 end
+//RndMnkIII fix ends here//
 
 //
 // The 6809 specs say that the CPU control signals are sampled on the falling edge of Q.
@@ -563,6 +611,26 @@ end
 // analyzer on the 6809 to determine how many cycles before a new instruction an interrupt (or /HALT & /DMABREQ)
 // had to be asserted to be noted instead of the next instruction running start to finish.  
 // 
+
+// Las especificaciones del 6809 dicen que las señales de control de la CPU se muestrean en el flanco de bajada de Q.
+// También indican que las interrupciones requieren 1 ciclo de tiempo de sincronización.
+// Eso es vago, ya que no se especifica dónde empieza o termina exactamente ese "1 ciclo". Partiendo
+// del flanco de bajada de Q, el siguiente ciclo detecta una activación. Al analizar un 6809 real con
+// un analizador lógico, lo que realmente significa es que se muestrea en el flanco de bajada de Q,
+// pero hay un retardo de un ciclo desde el flanco de bajada de E (lo que equivale a 0.25 ciclos de reloj desde el flanco de bajada de Q
+// cuando se muestrearon las señales) antes de que se pueda notar la activación.
+// Entonces, SIGNALSample es el valor capturado en el flanco de bajada de Q,
+//           SIGNALSample2 es el valor capturado en el flanco de bajada de E (0.25 ciclos después de la línea anterior),
+//           SIGNALLatched es el valor capturado en el flanco de bajada de E (1 ciclo después de la línea anterior).
+//
+// /HALT y /DMABREQ tienen un retardo de un ciclo menos que las interrupciones. Las especificaciones del 6809 insinúan estos detalles,
+// pero no indican desde qué punto de referencia están escritos (por ejemplo, dicen que una interrupción requiere
+// un ciclo para sincronizarse; sin embargo, no queda claro si eso se refiere del flanco de bajada de Q al siguiente flanco de bajada de Q,
+// un ciclo intermedio completo, del flanco de bajada de E al siguiente flanco de bajada de E, etc.) — lo cual, al final, requirió
+// usar un analizador lógico sobre un 6809 real para determinar cuántos ciclos antes de una nueva instrucción
+// debía activarse una interrupción (o /HALT y /DMABREQ) para que fuera tenida en cuenta en lugar de que se ejecutara
+// completamente la siguiente instrucción.
+
 always @(posedge CLK)
 begin
 	if(fallQ_en) begin
@@ -584,10 +652,9 @@ begin
 		NMISample2 <= NMISample;
 		
 		IRQSample2 <= IRQSample;
-		IRQLatched <= IRQSample2;
+
 
 		FIRQSample2 <= FIRQSample;
-		FIRQLatched <= FIRQSample2;
 
 		HALTSample2 <= HALTSample;
 		HALTLatched <= HALTSample2;
@@ -598,6 +665,11 @@ begin
 
 		if (rnRESET == 1)
 		begin
+            //RndMnkIII fix starts here//
+            IRQLatched <= IRQSample2;
+            FIRQLatched <= FIRQSample2;
+            //RndMnkIII fix ends here//
+
 			CpuState <= CpuState_nxt;
 			
 			// Don't interpret this next item as "The Next State"; it's a special case 'after this 
@@ -634,7 +706,16 @@ begin
 		end
 		else
 		begin
+            
 			CpuState <= CPUSTATE_RESET;
+
+            //RndMnkIII fix starts here//
+            // Las interrupciones no serán latcheadas durante el primer fallE_en tras reset, aunque las líneas IRQ/FIRQ estén activas a nivel bajo.
+            // Una vez pasado el reset (rnRESET == 1), se evaluarán normalmente.
+            IRQLatched  <= 1'b1;  // No hay IRQ pendiente justo tras reset
+		    FIRQLatched <= 1'b1;  // No hay FIRQ pendiente justo tras reset
+            //RndMnkIII fix ends here//
+
 			NMIMask <= 1'b1; // Mask NMI until S is loaded.
 			NMIClear <= 1'b0; // Mark us as not having serviced NMI
 		end
