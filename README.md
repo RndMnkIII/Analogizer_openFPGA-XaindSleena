@@ -10,8 +10,8 @@ support for Analogizer adapter. Refer to the Analogizer wiki for instructions ab
 
 If you like this project, you can support me here:
 
-- [![Patreon](https://img.shields.io/badge/Patreon-donar-orange)](https://patreon.com/RndMnkIII)
-- [![PayPal](https://img.shields.io/badge/PayPal-donar-blue)](https://paypal.me/analogizer)
+- [![Patreon](https://img.shields.io/badge/Patreon-donate-orange)](https://patreon.com/RndMnkIII)
+- [![PayPal](https://img.shields.io/badge/PayPal-donate-blue)](https://paypal.me/analogizer)
 
 ## Introduction
 Xain'd Sleena (ザインドスリーナ) is a two genre Platformer and side-scrolling arcade video game produced by Technos in 1986. It was licensed for release outside of Japan by Taito. In the USA, the game was published by Memetron, and the game was renamed to Solar Warrior. The European home computer ports renamed the game to Soldier of Light.
