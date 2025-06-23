@@ -1,7 +1,7 @@
 # Xain'd Sleena Pocket OpenFPGA Core by RndMnkIII:
 [0.1.0 22/05/2026] Initial release with support for Analogizer adapter.
 
-![Xaind Sleena](/doc/full_size_xain.jpg)
+![Xaind Sleena](/doc/PORTADA.jpg)
 
 Pocket port of original Xain'd Sleena MiSTer FPGA core that I created in 2022. This release includes native
 support for Analogizer adapter. Refer to the Analogizer wiki for instructions about Analogizer configuration.
