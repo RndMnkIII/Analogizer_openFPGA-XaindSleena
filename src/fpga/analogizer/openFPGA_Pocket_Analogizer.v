@@ -104,6 +104,9 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 
 	//Video Y/C Encoder interface
 	input  wire [39:0] CHROMA_PHASE_INC,
+	input wire  [26:0] COLORBURST_RANGE,
+	input  wire [4:0] CHROMA_ADD,
+	input  wire [4:0] CHROMA_MUL,
 	input  wire PALFLAG,
 	//Video SVGA Scandoubler interface
 	input  wire ce_pix,
@@ -274,8 +277,8 @@ wire  ANALOGIZER_DE = ~(HBL || VBL);
 wire ANALOGIZER_CSYNC = ~^{HS, VS};
 
 wire hs_fix,vs_fix;
-sync_fix sync_v(i_clk, Hsync, hs_fix);
-sync_fix sync_h(i_clk, Vsync, vs_fix);
+sync_fix sync_h(i_clk, Hsync, hs_fix);
+sync_fix sync_v(i_clk, Vsync, vs_fix);
 
 reg [7:0] R_fix,G_fix,B_fix;
 
@@ -287,11 +290,15 @@ always @(posedge i_clk) begin
 	if(~old_ce & ce_pix) begin
 		CE <= 1;
 		HS <= hs_fix;
-		if(~HS & hs_fix) VS <= vs_fix;
+		// if(~HS & hs_fix) VS <= vs_fix;
+		//FIX ONLY FOR XAIN'D SLEENA
+		VS <= vs_fix;
 
 		{R_fix,G_fix,B_fix} <= {R,G,B};
 		HBL <= Hblank;
-		if(HBL & ~Hblank) VBL <= Vblank;
+		// if(HBL & ~Hblank) VBL <= Vblank;
+		//FIX ONLY FOR XAIN'D SLEENA
+		VBL <= Vblank;
 	end
 end
 //---------------------------------------------------------------------------
@@ -365,8 +372,8 @@ end
 		.ypbpr_en(1'b1),
 		.csync(ANALOGIZER_CSYNC),
 		.de(ANALOGIZER_DE),
-		.din({R_fix&{8{ANALOGIZER_DE}},G_fix&{8{ANALOGIZER_DE}},B_fix&{8{ANALOGIZER_DE}}}), //NES specific override, because not zero color data while blanking period.
-		.dout({PrOut,Yout,PbOut}),
+		.din({R_fix[7:0],G_fix[7:0],B_fix[7:0]}), //24 bits input
+		.dout({PrOut,Yout,PbOut}), //24 bits output
 		.csync_o(YPbPr_sync),
 		.de_o(YPbPr_blank)
 	);
@@ -374,19 +381,24 @@ end
 	wire [23:0] yc_o ;
 	//wire yc_hs, yc_vs, 
 	wire yc_cs ;
-	yc_out yc_out
+
+	yc_out_legacy yc_out
 	(
 		.clk(i_clk),
-		.PHASE_INC(CHROMA_PHASE_INC),
 		.PAL_EN(PALFLAG),
+		.PHASE_INC(CHROMA_PHASE_INC),
+		.COLORBURST_RANGE(COLORBURST_RANGE),
+		.MULFLAG(CHROMA_MUL),
+		.CHRADD(CHROMA_ADD),
+		.CHRMUL(CHROMA_MUL),	
 		.hsync(HS),
 		.vsync(VS),
 		.csync(ANALOGIZER_CSYNC),
-    	.din({R_fix&{8{ANALOGIZER_DE}},G_fix&{8{ANALOGIZER_DE}},B_fix&{8{ANALOGIZER_DE}}}),
 		.dout(yc_o),
+		.din({R_fix, G_fix, B_fix}), //24bits input
 		.hsync_o(),
 		.vsync_o(),
-		.csync_o(yc_cs)
+		.csync_o(yc_cs) //24bits output
 	);
 
 	wire ce_pix_Sd ;

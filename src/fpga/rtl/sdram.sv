@@ -23,7 +23,7 @@ module sdram
     input             init,        // reset to initialize RAM
     input             clk,         // clock 96MHz
    
-    input             doRefresh,
+    //input             doRefresh,
 
     inout  reg [15:0] SDRAM_DQ,    // 16 bit bidirectional data bus
     output reg [12:0] SDRAM_A,     // 13 bit multiplexed address bus
@@ -37,15 +37,15 @@ module sdram
     output            SDRAM_CKE,   // clock enable
     output            SDRAM_CLK,   // clock for chip
 
-    input      [26:1] ch0a_addr,    // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
-    output reg [15:0] ch0a_dout,    // data output to cpu
-    input             ch0a_req,     // request
-    output reg        ch0a_ready,
+    // input      [26:1] ch0a_addr,    // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
+    // output reg [15:0] ch0a_dout,    // data output to cpu
+    // input             ch0a_req,     // request
+    // output reg        ch0a_ready,
 
-    input      [26:1] ch0b_addr,    // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
-    output reg [15:0] ch0b_dout,    // data output to cpu
-    input             ch0b_req,     // request
-    output reg        ch0b_ready,
+    // input      [26:1] ch0b_addr,    // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
+    // output reg [15:0] ch0b_dout,    // data output to cpu
+    // input             ch0b_req,     // request
+    // output reg        ch0b_ready,
 
     input      [26:1] ch1_addr,    // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
     output reg [15:0] ch1_dout,    // data output to cpu
@@ -93,7 +93,7 @@ localparam sdram_startup_cycles= 16'd12100;// 100us, plus a little more, @ 100MH
 
 // 64ms/8192 rows = 7.8us
 //localparam RFRSH_CYCLES = 16'd78*MHZ/4'd10;
-localparam cycles_per_refresh  = 16'd500; //16'd78*MHZ/4'd10; //16'd500;  // (64000*64)/8192-1 Calc'd as (64ms @ 64MHz)/8192 rose
+localparam cycles_per_refresh  = 16'd780; //16'd78*MHZ/4'd10; //16'd500;  // (64000*64)/8192-1 Calc'd as (64ms @ 64MHz)/8192 rose
 localparam startup_refresh_max = 16'b1111111111111111;
 
 // SDRAM commands
@@ -144,8 +144,8 @@ always @(posedge clk) begin
     
     reg        doRefresh_1;
     
-    ch0a_req_1 <= ch0a_req;
-    ch0b_req_1 <= ch0b_req;
+    // ch0a_req_1 <= ch0a_req;
+    // ch0b_req_1 <= ch0b_req;
     ch1_req_1 <= ch1_req;
     ch2_req_1 <= ch2_req;
     ch3_req_1 <= ch3_req;
@@ -156,17 +156,17 @@ always @(posedge clk) begin
     ch3_din_1  <= ch3_din;
     ch3_be_1   <= ch3_be;
     
-    doRefresh_1 <= doRefresh;
+    //doRefresh_1 <= doRefresh;
 
-    if (ch0a_req & ~ch0a_req_1) ch0a_rq <= 1;
-    if (ch0b_req & ~ch0b_req_1) ch0b_rq <= 1;
+    // if (ch0a_req & ~ch0a_req_1) ch0a_rq <= 1;
+    // if (ch0b_req & ~ch0b_req_1) ch0b_rq <= 1;
     if (ch1_req & ~ch1_req_1) ch1_rq <= 1;
     if (ch2_req & ~ch2_req_1) ch2_rq <= 1;
     if (ch3_req & ~ch3_req_1) ch3_rq <= 1;
     //if (ch4_req & ~ch4_req_1) ch4_rq <= 1;
 
-    ch0a_ready <= 0;
-    ch0b_ready <= 0;
+    //ch0a_ready <= 0;
+    //ch0b_ready <= 0;
     ch1_ready <= 0;
     ch2_ready <= 0;
     ch3_ready <= 0;
@@ -174,8 +174,8 @@ always @(posedge clk) begin
 
     refresh_count <= refresh_count+1'b1;
 
-    data_ready_delay0a <= data_ready_delay0a>>1;
-    data_ready_delay0b <= data_ready_delay0b>>1;
+    // data_ready_delay0a <= data_ready_delay0a>>1;
+    // data_ready_delay0b <= data_ready_delay0b>>1;
     data_ready_delay1 <= data_ready_delay1>>1;
     data_ready_delay2 <= data_ready_delay2>>1;
     data_ready_delay3 <= data_ready_delay3>>1;
@@ -198,10 +198,10 @@ always @(posedge clk) begin
 
     //RndMnkIII
     //1 + BURST_LENGTH - CHANNEL_LENGTH
-    if(data_ready_delay0a[1]) ch0a_dout[15:0] <= dq_reg;
-    if(data_ready_delay0a[1]) ch0a_ready <= 1;
-    if(data_ready_delay0b[1]) ch0b_dout[15:0] <= dq_reg;
-    if(data_ready_delay0b[1]) ch0b_ready <= 1;
+    // if(data_ready_delay0a[1]) ch0a_dout[15:0] <= dq_reg;
+    // if(data_ready_delay0a[1]) ch0a_ready <= 1;
+    // if(data_ready_delay0b[1]) ch0b_dout[15:0] <= dq_reg;
+    // if(data_ready_delay0b[1]) ch0b_ready <= 1;
     if(data_ready_delay1[1]) ch1_dout[15:0] <= dq_reg;
     if(data_ready_delay1[1]) ch1_ready <= 1;
     if(data_ready_delay2[1]) ch2_dout[15:0] <= dq_reg;
@@ -271,7 +271,7 @@ always @(posedge clk) begin
                 chip       <= ch3_addr_1[26];
                 saved_data <= ch3_din_1;
                 saved_wr   <= ~ch3_rnw_1;
-                ch         <= 4;
+                ch         <= 2;
                 ch3_rq     <= 0;
                 if (ch3_rnw_1) 
                     {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch3_addr_1[25:1]};
@@ -280,29 +280,29 @@ always @(posedge clk) begin
                 command    <= CMD_ACTIVE;
                 state      <= STATE_WAIT;
             end
-            else if(ch0a_rq) begin
-                {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch0a_addr[25:1]};
-                chip       <= ch0a_addr[26];
-                saved_wr   <= 0;
-                ch         <= 0;
-                ch0a_rq     <= 0;
-                command    <= CMD_ACTIVE;
-                state      <= STATE_WAIT;
-            end
-            else if(ch0b_rq) begin
-                {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch0b_addr[25:1]};
-                chip       <= ch0b_addr[26];
-                saved_wr   <= 0;
-                ch         <= 1;
-                ch0b_rq     <= 0;
-                command    <= CMD_ACTIVE;
-                state      <= STATE_WAIT;
-            end
+            // else if(ch0a_rq) begin
+            //     {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch0a_addr[25:1]};
+            //     chip       <= ch0a_addr[26];
+            //     saved_wr   <= 0;
+            //     ch         <= 0;
+            //     ch0a_rq     <= 0;
+            //     command    <= CMD_ACTIVE;
+            //     state      <= STATE_WAIT;
+            // end
+            // else if(ch0b_rq) begin
+            //     {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch0b_addr[25:1]};
+            //     chip       <= ch0b_addr[26];
+            //     saved_wr   <= 0;
+            //     ch         <= 1;
+            //     ch0b_rq     <= 0;
+            //     command    <= CMD_ACTIVE;
+            //     state      <= STATE_WAIT;
+            // end
             else if(ch1_rq) begin
                 {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch1_addr[25:1]};
                 chip       <= ch1_addr[26];
                 saved_wr   <= 0;
-                ch         <= 2;
+                ch         <= 0;
                 ch1_rq     <= 0;
                 command    <= CMD_ACTIVE;
                 state      <= STATE_WAIT;
@@ -311,21 +311,8 @@ always @(posedge clk) begin
                 {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch2_addr[25:1]};
                 chip       <= ch2_addr[26];
                 saved_wr   <= 0;
-                ch         <= 3;
+                ch         <= 1;
                 ch2_rq     <= 0;
-                command    <= CMD_ACTIVE;
-                state      <= STATE_WAIT;
-            end
-            else if(ch3_rq) begin
-                chip       <= ch3_addr_1[26];
-                saved_data <= ch3_din_1;
-                saved_wr   <= ~ch3_rnw_1;
-                ch         <= 4;
-                ch3_rq     <= 0;
-                if (ch3_rnw_1) 
-                    {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {2'b00, 1'b1, ch3_addr_1[25:1]};
-                else
-                    {cas_addr[12:9],SDRAM_BA,SDRAM_A,cas_addr[8:0]} <= {~ch3_be_1, 1'b1, ch3_addr_1[25:1]};
                 command    <= CMD_ACTIVE;
                 state      <= STATE_WAIT;
             end
@@ -352,23 +339,22 @@ always @(posedge clk) begin
             if(saved_wr) begin
                 command  <= CMD_WRITE;
                 SDRAM_DQ <= saved_data;
-                if(ch == 0) ch0a_ready  <= 1;
-                if(ch == 1) ch0b_ready  <= 1;
-                if(ch == 2) ch1_ready   <= 1;
-                if(ch == 3) ch2_ready   <= 1;
-                if(ch == 4) ch3_ready   <= 1;
+                // if(ch == 0) ch0a_ready  <= 1;
+                // if(ch == 1) ch0b_ready  <= 1;
+                if(ch == 0) ch1_ready   <= 1;
+                if(ch == 1) ch2_ready   <= 1;
+                if(ch == 2) ch3_ready   <= 1;
                 // if(ch == 5) ch4_ready   <= 1;
                 state <= STATE_IDLE_2;
             end
             else begin
                 command <= CMD_READ;
                 state   <= STATE_IDLE_5;
-                     if(ch == 0) data_ready_delay0a[CAS_LATENCY+BURST_LENGTH+1] <= 1;
-                else if(ch == 1) data_ready_delay0b[CAS_LATENCY+BURST_LENGTH+1] <= 1;
-                else if(ch == 2) data_ready_delay1[CAS_LATENCY+BURST_LENGTH+1] <= 1;
-                else if(ch == 3) data_ready_delay2[CAS_LATENCY+BURST_LENGTH+1] <= 1;
-                // else if(ch == 4) data_ready_delay3[CAS_LATENCY+BURST_LENGTH+1] <= 1;
-                else             data_ready_delay3[CAS_LATENCY+BURST_LENGTH+1] <= 1;
+                //      if(ch == 0) data_ready_delay0a[CAS_LATENCY+BURST_LENGTH+1] <= 1;
+                // else if(ch == 1) data_ready_delay0b[CAS_LATENCY+BURST_LENGTH+1] <= 1;
+                     if(ch == 2) data_ready_delay3[CAS_LATENCY+BURST_LENGTH+1] <= 1;
+                else if(ch == 0) data_ready_delay1[CAS_LATENCY+BURST_LENGTH+1] <= 1;
+                else if(ch == 1) data_ready_delay2[CAS_LATENCY+BURST_LENGTH+1] <= 1;
                 // else             data_ready_delay4[CAS_LATENCY+BURST_LENGTH+1] <= 1;
             end
         end

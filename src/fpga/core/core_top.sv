@@ -22,7 +22,7 @@ module core_top
     parameter DIO_MASK       = 4'h0,  //! Upper 4 bits of address
     parameter DIO_AW         = 25,    //! Address Width
     parameter DIO_DW         = 8,     //! Data Width (8 or 16 bits)
-    parameter DIO_DELAY      = 8,     //! Number of clock cycles to delay each write output
+    parameter DIO_DELAY      = 12,     //! Number of clock cycles to delay each write output
     parameter DIO_HOLD       = 4     //! Number of clock cycles to hold the ioctl_wr signal high
 
 )
@@ -640,10 +640,17 @@ module core_top
         .core_r                   ( video_rgb_xain[23:16]    ), // [i]
         .core_g                   ( video_rgb_xain[15:8]     ), // [i]
         .core_b                   ( video_rgb_xain[7:0]      ), // [i]
-        .core_hs                  ( hsync_core               ), // [i]
-        .core_vs                  ( vsync_core               ), // [i]
-        .core_hb                  ( hblank_core              ), // [i]
-        .core_vb                  ( vblank_core              ), // [i]
+        // .core_hs                  ( hsync_core               ), // [i]
+        // .core_vs                  ( vsync_core               ), // [i]
+        // .core_hb                  ( hblank_core              ), // [i]
+        // .core_vb                  ( vblank_core              ), // [i]
+        // .core_r                   ( RGB_out_R    ), // [i]
+        // .core_g                   ( RGB_out_G     ), // [i]
+        // .core_b                   ( RGB_out_B      ), // [i]
+        .core_hs                  ( HS_out               ), // [i]
+        .core_vs                  ( VS_out               ), // [i]
+        .core_hb                  ( HB_out              ), // [i]
+        .core_vb                  ( VB_out             ), // [i]
         // Output to Display
         .video_rgb                ( video_rgb                ), // [o]
         .video_hs                 ( video_hs                 ), // [o]
@@ -684,51 +691,7 @@ module core_top
         .ioctl_wr                 ( ioctl_wr                 ), // [o]
         .ioctl_addr               ( ioctl_addr               ), // [o]
         .ioctl_data               ( ioctl_data               )  // [o]
-    );
-
-    // logic        loader_busy;
-    // logic [15:0] loader_cycles_left;
-
-    // data_io_wrapper #(.MASK(DIO_MASK),.AW(DIO_AW),.DW(DIO_DW),.DELAY(DIO_DELAY),.HOLD(DIO_HOLD)) u_pocket_data_io
-    // (
-    //     // Clocks and Reset
-    //     .clk_74a                  ( clk_74a                  ), // [i]
-    //     .clk_memory               ( clk_sys                  ), // [i]
-    //     .reset                    ( 1'b0                     ), // [i]
-    //     // Pocket Bridge Slots
-    //     .dataslot_requestwrite    ( dataslot_requestwrite    ), // [i]
-    //     .dataslot_requestwrite_id ( dataslot_requestwrite_id ), // [i]
-    //     .dataslot_allcomplete     ( dataslot_allcomplete     ), // [i]
-    //     // MPU -> FPGA (MPU Write to FPGA)
-    //     // Pocket Bridge
-    //     .bridge_endian_little     ( bridge_endian_little     ), // [i]
-    //     .bridge_addr              ( bridge_addr              ), // [i]
-    //     .bridge_wr                ( bridge_wr                ), // [i]
-    //     .bridge_wr_data           ( bridge_wr_data           ), // [i]
-    //     // Controller Interface
-    //     .ioctl_download           ( ioctl_download           ), // [o]
-    //     .ioctl_index              ( ioctl_index              ), // [o]
-    //     .ioctl_wr                 ( ioctl_wr                 ), // [o]
-    //     .ioctl_addr               ( ioctl_addr               ), // [o]
-    //     .ioctl_data               ( ioctl_data               ),  // [o]
-    //       // señales de control para refresco
-    //     .loader_busy              ( loader_busy              ), // [o]
-    //     .loader_cycles_left       ( loader_cycles_left       )  // [o]
-    // );
-
-    // // Durante la fase de carga de datos en SDRAM, se gestiona el refresco de la memoria
-    // logic doRefresh;
-
-    // refresh_arbiter #(
-    // .CLK_FREQ_HZ(48_000_000),
-    // .TREFI_US(7.8)
-    // ) arb (
-    // .clk(clk_sys),
-    // .reset(1'b0),
-    // .loader_busy(loader_busy),
-    // .loader_cycles_left(loader_cycles_left),
-    // .doRefresh(doRefresh)
-    // );
+    );  
 
 //! ------------------------------------------------------------------------
     //! Clocks
@@ -889,17 +852,34 @@ logic [7:0] video_g_core;
 logic [7:0] video_b_core;
 logic hblank_core, vblank_core;
 logic hsync_core, vsync_core;
-logic csync_core;
+logic vsync2_core; 
+//logic csync_core;
 logic ce_pixel_core;
 
+//fix VSync (advance 2 pixel clock periods to align VSYNC rising edge with hsync rising edge)
+// logic ce_pixel_old;
+// logic [7:0] video_r_core_r1, video_r_core_r2;
+// logic [7:0] video_g_core_r1, video_g_core_r2;
+// logic [7:0] video_b_core_r1, video_b_core_r2;
+// logic hblank_core_r1, vblank_core_r1, hblank_core_r2, vblank_core_r2;
+// logic hsync_core_r1, hsync_core_r2;
 
-// logic reset_core;
-// assign reset_core = reset | ~dataslot_allcomplete; 
-// logic rc2, rc3;
-// always @(posedge clk_sys) begin
-//     rc2 <= reset_core;
-//     rc3 <= rc2;
-//end
+// always @(posedge clk_vid) begin
+//         video_r_core_r2 <= video_r_core_r1;
+//         video_g_core_r2 <= video_g_core_r1;
+//         video_b_core_r2 <= video_b_core_r1;
+//         hblank_core_r2  <= hblank_core_r1;
+//         vblank_core_r2  <= vblank_core_r1;
+//         hsync_core_r2   <= hsync_core_r1;
+//         video_r_core    <= video_r_core_r2;
+//         video_g_core    <= video_g_core_r2;
+//         video_b_core    <= video_b_core_r2;
+//         hblank_core     <= hblank_core_r2;
+//         vblank_core     <= vblank_core_r2;
+//         hsync_core      <= hsync_core_r2;
+// end
+//end of fix VSync
+
 
 xain_top #(.DBG_VIDEO(0)) xs_top(
     // Clocks & Reset
@@ -918,11 +898,11 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
     .PLAYER1        (PLAYER1),
     .PLAYER2        (PLAYER2),
     .SERVICE        (SERVICE),
-    .JAMMA_24       (1'b1),
-    .JAMMA_b        (1'b1),
+    .JAMMA_24       (1'b1), //P1 btn 3 not used
+    .JAMMA_b        (1'b1), //P2 btn 3, not used
 
     // Video Output
-    .CSYNC          (csync_core),
+    .CSYNC          (),
     .VIDEO_R        (video_r_core),
     .VIDEO_G        (video_g_core),
     .VIDEO_B        (video_b_core),
@@ -931,6 +911,15 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
     .VBLANK         (vblank_core),
     .HSYNC          (hsync_core),
     .VSYNC          (vsync_core),
+    .VSYNC2         (vsync2_core), //HACK to align VSYNC with HSYNC better
+    // .VIDEO_R        (video_r_core_r1),
+    // .VIDEO_G        (video_g_core_r1),
+    // .VIDEO_B        (video_b_core_r1),
+    // .CE_PIXEL       (ce_pixel_core),
+    // .HBLANK         (hblank_core_r1),
+    // .VBLANK         (vblank_core_r1),
+    // .HSYNC          (hsync_core_r1),
+    // .VSYNC          (vsync_core),
 
     // Sound Output
     .snd1           (core_snd_l),
@@ -956,6 +945,12 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
     .dram_cas_n     (dram_cas_n),
     .dram_cke       (dram_cke),
     .dram_clk       (dram_clk)
+
+    //dbg
+    // .btn1(p1_controls[4]), //~HSYNC_CORE
+    // .btn2(p1_controls[5]), //VSYNC_CORE
+    // .btn3(p1_controls[6]), //HBLANK_CORE
+    // .btn4(p1_controls[7])  //VBLANK_CORE
 );
 /*[ANALOGIZER_HOOK_BEGIN]*/
     //reg analogizer_ena;
@@ -968,8 +963,8 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
 
     //create aditional switch to blank Pocket screen.
     wire [23:0] video_rgb_xain;
-    assign video_rgb_xain = (pocket_blank_screen && !analogizer_ena) ? 24'h000000: {video_r_core,video_g_core,video_b_core};
-    //assign video_rgb_xain = {video_r_core,video_g_core,video_b_core};
+    assign video_rgb_xain = (pocket_blank_screen && analogizer_ena) ? 24'h000000: {RGB_out_R,RGB_out_G,RGB_out_B};
+    //assign video_rgb_xain = (pocket_blank_screen && analogizer_ena) ? 24'h000000: {video_r_core,video_g_core,video_b_core};
 
     //switch between Analogizer SNAC and Pocket Controls for P1-P4 (P3,P4 when uses PCEngine Multitap)
     wire [15:0] p1_btn, p2_btn, p3_btn, p4_btn;
@@ -1022,7 +1017,7 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         case(snac_cont_assignment[1:0])
         2'h0:    begin  //SNAC P1 -> Pocket P1
             p1_controls <= {p1_btn[15:4],p1_right,p1_left,p1_down,p1_up};
-            p2_controls <= cont2_key;
+            p2_controls <= cont1_key;
             end
         2'h1: begin  //SNAC P1 -> Pocket P2
             p1_controls <= cont1_key;
@@ -1084,6 +1079,8 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
     // https://github.com/MikeS11/MiSTerFPGA_YC_Encoder
     // SET PAL and NTSC TIMING and pass through status bits. ** YC must be enabled in the qsf file **
     wire [39:0] CHROMA_PHASE_INC;
+    wire [26:0] COLORBURST_RANGE;
+
     wire PALFLAG;
 
     parameter NTSC_REF = 3.579545;   
@@ -1097,11 +1094,17 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
 
     //PAL CLOCK FREQUENCY SHOULD BE 42.56274
     localparam [39:0] NTSC_PHASE_INC1 = 40'd81994819784; // ((NTSC_REF * 2^40) / CLK_VIDEO_NTSC)
-    localparam [39:0] PAL_PHASE_INC1  = 40'd101558653515; // ((PAL_REF * 2^40) / CLK_VIDEO_PAL)
+    localparam [39:0] PAL_PHASE_INC1  = 40'd101558653516; // ((PAL_REF * 2^40) / CLK_VIDEO_PAL)
     localparam [39:0] NTSC_PHASE_INC2 = 40'd78503006074; // ((NTSC_REF * 2^40) / CLK_VIDEO_NTSC2)
     localparam [39:0] PAL_PHASE_INC2  = 40'd97233698602; // ((PAL_REF * 2^40) / CLK_VIDEO_PAL2)
 
+	localparam [6:0] COLORBURST_START1 = (3.7 * (CLK_VIDEO_NTSC/NTSC_REF));
+	localparam [9:0] COLORBURST_NTSC_END1 = (9 * (CLK_VIDEO_NTSC/NTSC_REF)) + COLORBURST_START1;
+	localparam [9:0] COLORBURST_PAL_END1 = (10 * (CLK_VIDEO_PAL/PAL_REF)) + COLORBURST_START1;
 
+    localparam [6:0] COLORBURST_START2 = (3.7 * (CLK_VIDEO_NTSC2/NTSC_REF));
+	localparam [9:0] COLORBURST_NTSC_END2 = (9 * (CLK_VIDEO_NTSC2/NTSC_REF)) + COLORBURST_START2;
+	localparam [9:0] COLORBURST_PAL_END2 = (10 * (CLK_VIDEO_PAL2/PAL_REF)) + COLORBURST_START2;
 
     assign PALFLAG = (analogizer_video_type == 4'h4); 
 
@@ -1109,17 +1112,19 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         case(video_timing_lat)
         VIDEO_57HZ: begin
             CHROMA_PHASE_INC <= PALFLAG ? PAL_PHASE_INC1 : NTSC_PHASE_INC1; 
+            COLORBURST_RANGE <= {COLORBURST_START1, COLORBURST_NTSC_END1, COLORBURST_PAL_END1};
         end
-        VIDEO_60HZ: begin
+        default: begin
             CHROMA_PHASE_INC <= PALFLAG ? PAL_PHASE_INC2 : NTSC_PHASE_INC2; 
+            COLORBURST_RANGE <= {COLORBURST_START2, COLORBURST_NTSC_END2, COLORBURST_PAL_END2};
         end
         endcase
     end
 
     // H/V offset
     // Assigned to START + UP/DOWN/LEFT/RIGHT buttons
-    logic [5:0]	hoffset = 5'h0;
-    logic [4:0]	voffset = 4'h0;
+    logic [4:0]	hoffset = 5'h0;
+    logic [4:0]	voffset = 5'h0;
 
     logic start_r, up_r, down_r, left_r, right_r, btnA_r, p1r1_r, p2r1_r;
 
@@ -1150,6 +1155,8 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
        .LHBL(~hblank_core),
        .hoffset(hoffset), //5bits signed
        .voffset(voffset), //5bits signed
+    //    .hoffset(5'd0), //5bits signed
+    //    .voffset(5'd0), //5bits signed
        .hs_out(HSync),
        .vs_out(VSync)
    );
@@ -1241,6 +1248,9 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
 
         //Video Y/C Encoder interface
         .CHROMA_PHASE_INC(CHROMA_PHASE_INC),
+        .COLORBURST_RANGE(COLORBURST_RANGE),
+        .CHROMA_ADD(0),
+        .CHROMA_MUL(0),
         .PALFLAG(PALFLAG),
         //Video SVGA Scandoubler interface
         .ce_pix(ce_pixel_core),

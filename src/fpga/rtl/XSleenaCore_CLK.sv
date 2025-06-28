@@ -76,7 +76,10 @@ module XSleenaCore_CLK(
   output logic OBJCHGn,
   output logic OBJCLRn,
   output logic RAMCLRn,
-  output logic OBCH
+  output logic OBCH,
+
+  //Hacks
+  output logic VSYNC2
   );
   //--------- H Counter --------
   logic [3:0] ic29_Q;
@@ -277,11 +280,21 @@ module XSleenaCore_CLK(
   );
   
   logic ic48_notF;
-  assign ic48_notF = ~ic46_Q[0];
+  assign ic48_notF = ~ic46_Q[0];  
 
   logic ic15_nandB; //VSYNC
   assign ic15_nandB = ~(ic48_notF & ic33A_Q);
   assign VSYNC = ic15_nandB;
+
+
+  // **** hack (try to align VSYNC with HSYNC better) ***
+    logic ic48_notF2;
+  assign ic48_notF2 = ~ic46_Q[1];  
+
+  logic ic15_nandB2; //VSYNC
+  assign ic15_nandB2 = ~(ic48_notF2 & ic33A_Q);
+  assign VSYNC2 = ic15_nandB2;
+  // *************
 
   logic ic60_xorA;
   assign ic60_xorA = HSYNC ^ VSYNC; //CSYNC

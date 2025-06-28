@@ -100,7 +100,8 @@ module XSleenaCore (
 	input  wire credits,
 
 	//hacks interface
-	input wire CPU_turbo_mode
+	input wire CPU_turbo_mode,
+	output wire VSYNC2
 );
 	//Clocking signals
 	logic HCLK, HCLKn;
@@ -291,7 +292,9 @@ module XSleenaCore (
         .OBJCHGn(OBJCHGn),
         .OBJCLRn(OBJCLRn),
         .RAMCLRn(RAMCLRn),
-        .OBCH(OBCH)
+        .OBCH(OBCH),
+		//HACKS
+		.VSYNC2(VSYNC2)
 	);
 
 	//Generate signals for main,sub CPU for turbo modes

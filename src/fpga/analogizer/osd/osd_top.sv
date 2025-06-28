@@ -410,6 +410,7 @@ module osd_top #(
     assign Ggrayout = (G_d2 >> 1) + (OSD_GRAY >> 2);
     assign Bgrayout = (B_d2 >> 1) + (OSD_GRAY >> 2);
 
+    //assign {R_out, G_out, B_out} = (y_pix[9:0] == 10'd0) ? 24'd0 : (video_osd[24] == 1'b0) ? video_osd[23:0] : (osd_active ? {Rgrayout,Ggrayout,Bgrayout} :{R_d2, G_d2, B_d2});
     assign {R_out, G_out, B_out} = (video_osd[24] == 1'b0) ? video_osd[23:0] : (osd_active ? {Rgrayout,Ggrayout,Bgrayout} :{R_d2, G_d2, B_d2});
     assign hsync_out = hsync_d2;
     assign vsync_out = vsync_d2;

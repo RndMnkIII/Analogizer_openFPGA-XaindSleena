@@ -38,6 +38,9 @@ module xain_top (
 	output logic HSYNC,
 	output logic VSYNC,
 
+	//HACK to align VSYNC with HSYNC better
+	output logic VSYNC2,
+
 	//sound output
     output logic signed [15:0] snd1,
 	output logic signed [15:0] snd2,
@@ -59,6 +62,12 @@ module xain_top (
     output wire        dram_cas_n,// columns address select
     output wire        dram_cke,  // clock enable
     output wire        dram_clk   // clock for chip
+
+	//dbg
+	// input wire btn1,
+	// input wire btn2,
+	// input wire btn3,
+	// input wire btn4
 );
 	parameter DBG_VIDEO = 0; //1 to enable video debug output
 	parameter ROM_INDEX = 16'h1; //0 MiSTer FPGA, 1 Analogue Pocket
@@ -101,13 +110,10 @@ module xain_top (
 	reg sdr_rom_req;
 
 	wire sdr_rom_write = ioctl_download && (ioctl_index == ROM_INDEX); //0 MiSTer FPGA, 1 Analogue Pocket
-	// wire [24:0] sdr_ch3_addr = sdr_rom_write ? sdr_rom_addr : sdr_bg2_addr;
 	wire [24:0] sdr_ch3_addr = sdr_rom_write ? sdr_rom_addr : sdr_bg2_addr;
-	// wire [15:0] sdr_ch3_din = sdr_rom_write ? sdr_rom_data : sdr_cpu_din;
 	wire [15:0] sdr_ch3_din = sdr_rom_data;
-	// wire [1:0] sdr_ch3_be = sdr_rom_write ? sdr_rom_be : sdr_cpu_wr_sel;
 	wire [1:0] sdr_ch3_be = sdr_rom_be;
-	// wire sdr_ch3_rnw = sdr_rom_write ? 1'b0 : ~{|sdr_cpu_wr_sel};
+	
 	wire sdr_ch3_rnw = sdr_rom_write ? 1'b0 : 1'b1; //or ROM downloading or SDRAM ROM read
 	wire sdr_ch3_req = sdr_rom_write ? sdr_rom_req : sdr_bg2_req;
 	wire sdr_ch3_rdy;
@@ -120,7 +126,6 @@ module xain_top (
 	wire bram_wr;
 
 	//board_cfg_t board_cfg;
-
 	sdram sdram
 	(
 		.SDRAM_DQ     (dram_dq),     // 16-bit bidirectional data bus
@@ -134,44 +139,27 @@ module xain_top (
 		.SDRAM_nCAS   (dram_cas_n),   // Column address select
 		.SDRAM_CKE    (dram_cke),    // Clock enable
 		.SDRAM_CLK    (dram_clk),    // Clock for chip
-		.doRefresh(doRefresh),
 		.init(init),
 		.clk(sdr_clk),
-	`ifdef CPU_OVERCLOCK_HACK
-		.ch0a_addr(24'h0),//cpu_addr[16:0] 64Kb Main CPU + 64Kb Sub CPU
-		.ch0a_dout(),
-		.ch0a_req(1'b0),
-		.ch0a_ready(),
 
-		.ch0b_addr(24'h0),//cpu_addr[16:0] 64Kb Main CPU + 64Kb Sub CPU
-		.ch0b_dout(),
-		.ch0b_req(1'b0),
-		.ch0b_ready(),
-	`else    
-		.ch0a_addr(sdr_mcpu_addr[24:1]),//cpu_addr[16:0] 64Kb Main CPU + 64Kb Sub CPU
-		.ch0a_dout(sdr_mcpu_dout),
-		.ch0a_req(sdr_mcpu_req),
-		.ch0a_ready(sdr_mcpu_rdy),
-
-		.ch0b_addr(sdr_scpu_addr[24:1]),//cpu_addr[16:0] 64Kb Main CPU + 64Kb Sub CPU
-		.ch0b_dout(sdr_scpu_dout),
-		.ch0b_req(sdr_scpu_req),
-		.ch0b_ready(sdr_scpu_rdy),
-	`endif
 		.ch1_addr(sdr_obj_addr[24:1]), //16bit address
 		.ch1_dout(sdr_obj_dout),
+		//.ch1_din(0),
 		.ch1_req(sdr_obj_req),
+		//.ch1_rnw(1),
 		.ch1_ready(sdr_obj_rdy),
 
 		.ch2_addr(sdr_bg1_addr[24:1]), //16bit address
 		.ch2_dout(sdr_bg1_dout),
+		//.ch2_din(0),
 		.ch2_req(sdr_bg1_req),
+		//.ch2_rnw(1),
 		.ch2_ready(sdr_bg1_rdy),
 
 		.ch3_addr(sdr_ch3_addr[24:1]), //16bit address
 		.ch3_din(sdr_ch3_din),
-		.ch3_dout(sdr_bg2_dout),
 		.ch3_be(sdr_ch3_be),
+		.ch3_dout(sdr_bg2_dout),
 		.ch3_rnw(sdr_ch3_rnw),
 		.ch3_req(sdr_ch3_req),
 		.ch3_ready(sdr_ch3_rdy)
@@ -208,7 +196,10 @@ module xain_top (
 	logic [3:0] VIDEO_4B;
 	logic HBLANK_CORE, VBLANK_CORE;
 	logic HSYNC_CORE, VSYNC_CORE;
+	logic CSYNC_CORE;
 	logic CE_PIX;
+	//HACK to align VSYNC with HSYNC better
+	logic VSYNC2_CORE;
 
 	XSleenaCore xlc (
 		.CLK(clk),
@@ -232,7 +223,9 @@ module xain_top (
 		.VBLANK(VBLANK_CORE), //NEGATIVE VBLANK
 		.VSYNC(VSYNC_CORE), //NEGATIVE VSYNC
 		.HSYNC(HSYNC_CORE), //NEGATIVE HSYNC
-		.CSYNC(CSYNC),
+		.CSYNC(CSYNC_CORE),
+
+		.VSYNC2(VSYNC2_CORE), //HACK to align VSYNC with HSYNC better
 		
 		//Memory interface
 		//SDRAM
@@ -319,6 +312,8 @@ endgenerate
 		VBLANK   <=  ~VBLANK_CORE;
 		HSYNC    <=   HSYNC_CORE;
 		VSYNC    <=  ~VSYNC_CORE;
+		CSYNC	 <=  CSYNC_CORE;
+		VSYNC2   <=  VSYNC2_CORE; //HACK to align VSYNC with HSYNC better
 	end
 
 endmodule
