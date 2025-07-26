@@ -7,8 +7,8 @@
             "description": "Xain'd Sleena Technos Core",
             "author": "RndMnkIII",
             "url": "https://github.com/RndMnkIII/Analogizer_openFPGA-XaindSleena",
-            "version": "0.1.5",
-            "date_release": "2025-07-26"
+            "version": "0.1.6",
+            "date_release": "2025-07-27"
         },
         "framework": {
             "target_product": "Analogue Pocket",

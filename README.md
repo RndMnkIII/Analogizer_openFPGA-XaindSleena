@@ -1,7 +1,8 @@
 # Xain'd Sleena Pocket OpenFPGA Core by RndMnkIII:
 * [0.1.0 22/05/2026] Initial release with support for Analogizer adapte.
 * [0.1.3 28/06/2025] Fixed Y/C and YPbPr video outputs. Fixed disable Pocket screen Analogizer option. Improved SDRAM controller stability.
-
+* [0.1.5 27/07/2025] Fixed VBlank core signal. No trash data on the first line of Pocket screen.
+* [0.1.6 28/07/25] Fixed video.json width
 ![Xaind Sleena](/doc/PORTADA.jpg)
 
 Pocket port of original Xain'd Sleena MiSTer FPGA core that I created in 2022. This release includes native
