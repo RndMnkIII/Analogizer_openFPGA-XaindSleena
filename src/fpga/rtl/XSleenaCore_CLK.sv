@@ -77,8 +77,6 @@ module XSleenaCore_CLK(
   output logic OBJCLRn,
   output logic RAMCLRn,
   output logic OBCH,
-
-  //Hacks
   output logic VSYNC2
   );
   //--------- H Counter --------
@@ -288,12 +286,57 @@ module XSleenaCore_CLK(
 
 
   // **** hack (try to align VSYNC with HSYNC better) ***
-    logic ic48_notF2;
-  assign ic48_notF2 = ~ic46_Q[1];  
+  logic [5:0] DHPOS_r;
+  logic VSYNC2_r=1'b1;
 
-  logic ic15_nandB2; //VSYNC
-  assign ic15_nandB2 = ~(ic48_notF2 & ic33A_Q);
-  assign VSYNC2 = ic15_nandB2;
+  always_ff @(posedge clk) begin
+    DHPOS_r <= DHPOS;
+    if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd1 && ic42_Q[1]== 1'd1 && DVPOS == 8'd253) begin 
+      VSYNC2_r <= 1'b0;
+    end
+    else if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd0 && ic42_Q[1]== 1'd1 && DVPOS == 8'd237) begin 
+      VSYNC2_r <= 1'b1;
+    end
+    else
+      VSYNC2_r <= VSYNC2_r;
+       //hold value
+  end
+  assign VSYNC2 = VSYNC2_r;
+
+  //*** HACK: VBLANK signal with 32 scanlines, instead of 33 ***
+  logic [7:0] DVPOS_r;
+  logic VBLKn2_r=1'b1;
+  //logic IMS_r;
+  logic vcnt_reset = 1'b0; //reset VBLK counter
+
+  always_ff @(posedge clk) begin
+    DVPOS_r <= DVPOS;
+    //IMS_r <= IMS;
+
+    if(DVPOS_r == 8'hFF && DVPOS == 8'h08) begin
+      vcnt_reset <= 1'b1; 
+    end
+    else if(DVPOS_r == 8'hFF && DVPOS == 8'hE8) begin
+      vcnt_reset <= 1'b0;
+    end
+    else begin
+      vcnt_reset <= vcnt_reset; //hold value
+    end
+
+
+    if(DVPOS_r == 8'hF5 && DVPOS == 8'hF6 && vcnt_reset == 1'b1) begin 
+      VBLKn2_r <= 1'b0;
+    end
+    else if(DVPOS_r == 8'hFD && DVPOS == 8'hFE && vcnt_reset == 1'b0) begin 
+      VBLKn2_r <= 1'b1;
+    end
+    else
+      VBLKn2_r <= VBLKn2_r;
+       //hold value
+  end
+
+  // *** HACK reverse this change ***
+  assign VBLKn = VBLKn2_r;
   // *************
 
   logic ic60_xorA;
@@ -359,7 +402,9 @@ module XSleenaCore_CLK(
   //             F8                                      E8
   //      __  ___  ___  ___  ___  ___  ___  ___  ___                                           ___  __       ___  ___  ___  ___  ___  _     
   //CSYNC   \/   \/   \/   \/   \/   \/   \/   \/   \/|__/\___/\___/\___/\___/\___/\___/\___/\|   \/  \/|...    \/   \/   \/   \/   \/                    
-  assign VBLKn = ic48_notE;
+  
+  // *** HACK reverse this change ***
+  //assign VBLKn = ic48_notE; hack, setting VLBKn as VBLKn2_r;
 
   logic [7:0] V_CNT;
 

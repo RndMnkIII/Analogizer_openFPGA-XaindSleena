@@ -140,68 +140,91 @@ module video_mixer
     //--------------------------------------------------------------------------
     wire [7:0] r_out,   g_out,   b_out;
     wire       hs_out,  vs_out,  de_out;
-    logic      hs_last, vs_last, de_last; // Sync/DE Edge Detection
-    reg  [2:0] vsync_d;                   // 3-cycle delay for VSync
-    reg        hsync_d_trg;               // Flag to enable hsync after VSync delay
+
+
+    logic       hs_last, vs_last, de_last;  // Sync/DE Edge Detection
+    logic       hs_enable_dly;              // Delay register to create gap after DE deassertion
+    logic       de_enable_dly;              // Delay register to create gap after HS assertion
+    logic [1:0] vs_dly_cnt;                 // Counter for the 3-cycle delay after VS (0-2)
 
     always_ff @(posedge clk_vid) begin : apfVideoOutput
-        if(reset) begin
-            video_rgb   <= 24'h0;
-            video_hs    <=  1'b0;
-            video_vs    <=  1'b0;
-            video_de    <=  1'b0;
-            hs_last     <=  1'b0;
-            vs_last     <=  1'b0;
-            de_last     <=  1'b0;
-            vsync_d     <=  3'b0;
-            hsync_d_trg <=  1'b0;
+        if (reset) begin
+            video_rgb     <= 24'h0;
+            video_hs      <= 1'b0;
+            video_vs      <= 1'b0;
+            video_de      <= 1'b0;
+            hs_last       <= 1'b0;
+            vs_last       <= 1'b0;
+            de_last       <= 1'b0;
+            vs_dly_cnt    <= 2'd0;
+            hs_enable_dly <= 1'b1;
+            de_enable_dly <= 1'b1;
         end
         else begin
-            // Shift VSync delay register
-            vsync_d <= {vsync_d[1:0], vs_out};
+            // Store previous state for edge detection
+            vs_last   <= vs_out;
+            hs_last   <= hs_out;
+            de_last   <= de_out;
 
-            // Enable HSync delay flag 3 cycles after VSync goes high
-            if (vsync_d[2] && !hsync_d_trg) begin
-                hsync_d_trg <= 1'b1;
-            end
-            else if (vs_out) begin
-                hsync_d_trg <= 1'b0;  // Reset HSync delay trigger when VSync is high
-            end
-
+            // Default outputs for this cycle
             video_rgb <= 24'h0;
+            video_hs  <= 1'b0;
+            video_vs  <= 1'b0;
             video_de  <= 1'b0;
-            video_vs  <= ~vs_last && vs_out;
 
-            // Handle HSync with 3-cycle delay after VSync
-            video_hs <= (hsync_d_trg && (~hs_last && hs_out));
-
-            // Handle frame feature bits during VS pulse
-            if(~vs_last && vs_out && EN_INTERLACED) begin
-                video_rgb <= { 20'h0, ~field, field, interlaced, 1'h0 };
+            //------------------------------------------------------------------
+            // State management for timing gaps
+            //------------------------------------------------------------------
+            // 1. VS->HS 3-cycle gap logic
+            if (~vs_last && vs_out) begin  // On rising edge of vs_out
+                vs_dly_cnt <= 2'd2;        // Start a 3-cycle countdown (2->1->0)
             end
-            else if(de_out) begin
+            else if (vs_dly_cnt > 2'd0) begin
+                vs_dly_cnt <= vs_dly_cnt - 2'd1;
+            end
+
+            // 2. DE->HS 1-cycle gap logic
+            // Prevent HS for 1 cycle after DE falls
+            hs_enable_dly <= 1'b1;
+            if (de_last && ~de_out) begin
+                hs_enable_dly <= 1'b0;
+            end
+
+            // 3. HS->DE 1-cycle gap logic
+            // Prevent DE for 1 cycle after HS rises
+            de_enable_dly <= 1'b1;
+            if (~hs_last && hs_out) begin // Use input signal edge detection
+                de_enable_dly <= 1'b0;
+            end
+
+            //------------------------------------------------------------------
+            // Output Generation
+            //------------------------------------------------------------------
+            // Generate single-cycle VS pulse
+            if (~vs_last && vs_out) begin
+                video_vs <= 1'b1;
+                // Handle frame feature bits during VS pulse
+                if (EN_INTERLACED) begin
+                    // [23:3] Reserved | [3] Last Field | [2] (0=Even/1=Odd) Field | [1] (0=Progressive/1=Interlaced) | [0] Rescan the previous frame
+                    video_rgb <= { 20'h0, ~field, field, interlaced, 1'h0 };
+                end
+            end
+
+            // Generate single-cycle HS pulse, respecting all gap rules
+            // Conditions: rising edge of hs_out, VS delay is over, and DE didn't just fall.
+            if ((~hs_last && hs_out) && (vs_dly_cnt == 2'd0) && hs_enable_dly) begin
+                video_hs <= 1'b1;
+            end
+
+            // Generate DE, respecting the gap after HS
+            if (de_out && de_enable_dly) begin
                 video_de  <= 1'b1;
                 video_rgb <= { r_out, g_out, b_out };
             end
-            // Handle end-of-line bits after the DE falling edge
-            else if(de_last && ~de_out) begin
-                video_rgb <= { 8'h0, video_preset, 13'h0 };
+            // Handle end-of-line bits on the falling edge of de_out
+            else if (de_last && ~de_out) begin
+                video_rgb <= { 8'h0, video_preset, 13'h0 }; // Set Scaler Slot command
             end
-
-            // Enforce 1 clock gap between HS and DE assertion
-            if (video_hs && !hs_last && !de_last) begin
-                video_de <= 1'b0;  // Ensure DE is not asserted immediately with HS
-            end
-
-            // Enforce 1 clock gap between DE deassertion and the next line's HS
-            if (de_last && !de_out) begin
-                video_hs <= 1'b0;  // Ensure HS does not assert immediately after DE deassertion
-            end
-
-            // Update last state registers
-            hs_last <= hs_out;
-            vs_last <= vs_out;
-            de_last <= de_out;
         end
     end
 

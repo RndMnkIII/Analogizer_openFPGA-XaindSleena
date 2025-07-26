@@ -740,30 +740,41 @@ module core_top
 
 
     // PLL Configuration (Integral)
-    localparam PLL_PARAM_COUNT = 9;
+    localparam PLL_PARAM_COUNT = 11;
 
+//96
+//48
+//12
     wire [31:0] PLL_57HZ[PLL_PARAM_COUNT * 2] = '{
         'h0, 'h0, // set waitrequest mode
-        'h4, 'h4040, // M COUNTER
-        'h3, 'h20605, // N COUNTER
-        'h5, 'h20504, // C COUNTER
-        'h5, 'h40909, // C COUNTER
-        'h5, 'h84848, // C COUNTER
-        'h5, 'hC4848, // C COUNTER
-        'h8, 'h2, // BANDWIDTH
-        'h2, 'h0 // start reconfigure
+        'h4, 'h20504, // M COUNTER
+        'h3, 'h10000, // N COUNTER
+        'h5, 'h20403, // C COUNTER
+        'h5, 'h40707, // C COUNTER
+        'h5, 'h81C1C, // C COUNTER
+        'h5, 'hC1C1C, // C COUNTER
+        'h9, 'h3, //CHARGE PUMP
+        'h8, 'h8, // BANDWIDTH
+        'h7, 'h0CEDE5EA, //M COUNTER FRACTION
+        'h2, 'h1 // start fractional PLL reconfigure 
     };
 
+
+    //100.27008 
+    //50.13504
+    //12.53376
     wire [31:0] PLL_60HZ[PLL_PARAM_COUNT * 2] = '{
         'h0, 'h0, // set waitrequest mode
-        'h4, 'h4F4F, // M COUNTER
-        'h3, 'h20706, // N COUNTER
-        'h5, 'h20504, // C COUNTER
-        'h5, 'h40909, // C COUNTER
-        'h5, 'h84848, // C COUNTER
-        'h5, 'hC4848, // C COUNTER
-        'h8, 'h3, // BANDWIDTH
-        'h2, 'h0 // start reconfigure
+        'h4, 'h404, // M COUNTER
+        'h3, 'h10000, // N COUNTER
+        'h5, 'h303, // C COUNTER
+        'h5, 'h40606, // C COUNTER
+        'h5, 'h81818, // C COUNTER
+        'h5, 'hC1818, // C COUNTER
+        'h9, 'h3, //CHARGE PUMP
+        'h8, 'h8, // BANDWIDTH
+        'h7, 'h1A462335, //M COUNTER FRACTION
+        'h2, 'h1 // start fractional PLL reconfigure 
     };
 
     video_timing_t video_timing_lat = VIDEO_57HZ;

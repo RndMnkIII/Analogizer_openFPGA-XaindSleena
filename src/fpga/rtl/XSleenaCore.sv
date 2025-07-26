@@ -293,7 +293,6 @@ module XSleenaCore (
         .OBJCLRn(OBJCLRn),
         .RAMCLRn(RAMCLRn),
         .OBCH(OBCH),
-		//HACKS
 		.VSYNC2(VSYNC2)
 	);
 

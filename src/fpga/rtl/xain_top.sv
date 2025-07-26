@@ -1,4 +1,3 @@
-
 //
 // Xain'd Sleena core interface for the Analogue Pocket top-level
 //
@@ -37,8 +36,6 @@ module xain_top (
 	output logic VBLANK,
 	output logic HSYNC,
 	output logic VSYNC,
-
-	//HACK to align VSYNC with HSYNC better
 	output logic VSYNC2,
 
 	//sound output
@@ -198,8 +195,6 @@ module xain_top (
 	logic HSYNC_CORE, VSYNC_CORE;
 	logic CSYNC_CORE;
 	logic CE_PIX;
-	//HACK to align VSYNC with HSYNC better
-	logic VSYNC2_CORE;
 
 	XSleenaCore xlc (
 		.CLK(clk),
@@ -224,8 +219,6 @@ module xain_top (
 		.VSYNC(VSYNC_CORE), //NEGATIVE VSYNC
 		.HSYNC(HSYNC_CORE), //NEGATIVE HSYNC
 		.CSYNC(CSYNC_CORE),
-
-		.VSYNC2(VSYNC2_CORE), //HACK to align VSYNC with HSYNC better
 		
 		//Memory interface
 		//SDRAM
@@ -276,7 +269,8 @@ module xain_top (
 		.pause_rq(pause),
 		.credits(credits),
 		//HACKS
-		.CPU_turbo_mode(MODSW[1])
+		.CPU_turbo_mode(MODSW[1]),
+		.VSYNC2(VSYNC2)
 	);
 
 
@@ -313,7 +307,6 @@ endgenerate
 		HSYNC    <=   HSYNC_CORE;
 		VSYNC    <=  ~VSYNC_CORE;
 		CSYNC	 <=  CSYNC_CORE;
-		VSYNC2   <=  VSYNC2_CORE; //HACK to align VSYNC with HSYNC better
 	end
 
 endmodule
