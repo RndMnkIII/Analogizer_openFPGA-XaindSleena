@@ -1,10 +1,6 @@
 # Xain'd Sleena Pocket OpenFPGA Core by RndMnkIII:
-[0.1.0 22/05/2025] Initial release with support for Analogizer adapter.
-[0.1.3 28/06/2025] Fixed Y/C and YPbPr video outputs. Fixed disable Pocket screen Analogizer option. Improved SDRAM controller stability.
-[0.1.4 29/06/2025] Fixed Line at top of screen (Issue #3). This was related to the `video.json` core file and the aspect ratio setting.
-[0.1.5 26/07/2025] Fixed Vblank signal from core.
-
-
+* [0.1.0 22/05/2026] Initial release with support for Analogizer adapte.
+* [0.1.3 28/06/2025] Fixed Y/C and YPbPr video outputs. Fixed disable Pocket screen Analogizer option. Improved SDRAM controller stability.
 
 ![Xaind Sleena](/doc/PORTADA.jpg)
 
