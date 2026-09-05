@@ -116,7 +116,7 @@ module XSleenacore_VideoMixer (
   //Only used 512 bytes
   logic [7:0] PLRAM_LSB_Din, PLRAM_LSB_Dout;
   // SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("xs_jungle_col1.bin_vmem.txt")) ic95(
-  SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("xs_desert_col1.bin_vmem.txt")) ic95(
+  SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(9)) ic95(
 		.clk(clk),
 		.ADDR(PLRAM_ADDR),
 		.DATA(PLRAM_LSB_Din),
@@ -130,7 +130,7 @@ module XSleenacore_VideoMixer (
   // Implemented as 9bit address x 8 bit data
   logic [7:0] PLRAM_MSB_Din, PLRAM_MSB_Dout;
   // SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("xs_jungle_col2.bin_vmem.txt")) ic94(
-     SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("xs_desert_col2.bin_vmem.txt")) ic94(
+     SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(9)) ic94(
 		.clk(clk),
 		.ADDR(PLRAM_ADDR),
 		.DATA(PLRAM_MSB_Din),

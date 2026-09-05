@@ -1,7 +1,12 @@
 //This module encapsulates all Analogizer adapter SNAC controllers
 // Original work by @RndMnkIII. 
 // Date: 01/2024 
-// Release: 1.0
+// Releases: 
+// * 1.0 [01/01/2024] Initial RGBS output mode
+// * 1.1              Added SOG modes: RGsB, YPbPt
+// * 1.2              Added Mike Simon Y/C module, Scandoubler SVGA Mist module.     
+// * 1.3 [11/02/2025] Added Bridge interface to directly access to the Analogizer settings, now returns the settings. Added NES SNAC Zapper support.
+// * 1.4 [20/08/2026] Added PS/2 Keyboard and Mouse support (hook) + NES/SNES/DB15 SNAC game adapter. Needs custom SNAC adapter. Analogizer global enable/disable is read from configuration file.
 
 // *** Analogizer R.1 adapter ***
 //SNAC mappings:
@@ -37,22 +42,22 @@
 //cart_tran_bank1[7] -------------------------------------------+     |     |
 //cart_tran_pin30    -------------------------------------------------+     | cart_tran_pin30_dir=1'b1, cart_pin30_pwroff_reset=1'b1 (GPIO USE)
 //cart_tran_pin31    -------------------------------------------------------+ cart_tran_pin31_dir=1'b0 / 1'b1 
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------------++------------------
-//                                                      C O N F I G U R A T I O N   A                                                                                || CONFIGURATION  B
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------------++------------------
-//     DEV TYPE          0                   1                    2                   3                   4                     5                 6                  || 16         
-//     PIN_NAME         SNAC DISABLED        DB15		          NES                 SNES                PCENGINE(2BTN)        PCENGINE(6BTN)    PCENGINE(MULTITAP) || PSX
-//USB3       SNAC                                                                                                                                                    || [NOT IMPLEMENTED]
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------------||------------------
-//VBUS 		 	                             +5V                  +5V                 +5V                 +5V                   +5V               +5V                || +5V                 
-//D-		 OUT1      	                     CLK(O)               CLK_1(O)            CLK_1(O)            CLR(O)(*)             CLR(O)(*)         CLR(O)(*)          || AT1(O)     
-//D+		 OUT2      	                     LAT(O)               LAT(O)              LAT(O)              SEL(O)(*)             SEL(O)(*)         SEL(O)(*)          || AT2(O)     
-//GND 		 	                             GND                  GND                 GND                 GND                   GND               GND                || GND     
-//RX-		  IO3                            DAT(I)               D0_1(I)             D0_1(I)             D2 (I)(*)             D2 (I)(*)         D2 (I)(*)          || CLK(O)          +
-//RX+		  IN4                                                 D4_2(I)             IO_2(I)             D0 (I)(*)             D0 (I)(*)         D0 (I)(*)          || DAT(I)      
-//GND_DRAIN	  IO5                                                 CLK_2(O)            CLK_2(O)                                                                       || ACK(I)          +
-//TX-		  IO6                            DAT(I)(1)            D3_2(I)             D3_2(I)             D1 (I)(*)             D1 (I)(*)         D1 (I)(*)          || CMD(O)          +    
-//TX+		  IN7                            D0_2(I)              D0_2(I)             D3 (I)(*)           D3 (I)(*)             D3 (I)(*)         D3 (I)(*)          || IRQ10(I)      
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------
+//                                                      C O N F I G U R A T I O N   A                                                                                                            | CONFIGURATION  B 
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------+-----------
+//     DEV TYPE          0X0                 0X1                  0X2                 0X3                 0X4                   0X5               0X6                   0XC,0XD,0XE,0XF          | 0X11,0X13         | 0X14
+//     PIN_NAME         SNAC DISABLED        DB15		          NES                 SNES                PCENGINE(2BTN)        PCENGINE(6BTN)    PCENGINE(MULTITAP)    PS/2 K&M + NES/SNES/DB15 | PSX               | JVS IO
+//USB3       SNAC                                                                                                                                                                                |                   |  
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------+-----
+//VBUS 		 	                             +5V                  +5V                 +5V                 +5V                   +5V               +5V                   +5V                      | +5V               | +5V  
+//D-		 OUT1      	                     CLK(O)               CLK_1(O)            CLK_1(O)            CLR(O)(*)             CLR(O)(*)         CLR(O)(*)             CLK(O)                   | AT1(O)            | 
+//D+		 OUT2      	                     LAT(O)               LAT(O)              LAT(O)              SEL(O)(*)             SEL(O)(*)         SEL(O)(*)             LAT(O)                   | AT2(O)            | 
+//GND 		 	                             GND                  GND                 GND                 GND                   GND               GND                   GND                      | GND               | GND
+//RX-		  IO3                            DAT(I)               D0_1(I)             D0_1(I)             D2 (I)(*)             D2 (I)(*)         D2 (I)(*)             DAT(I)                   | CLK(O)          + | 
+//RX+		  IN4                                                 D4_2(I)             IO_2(I)             D0 (I)(*)             D0 (I)(*)         D0 (I)(*)             KDAT                     | DAT(I)            | 
+//GND_DRAIN	  IO5                                                 CLK_2(O)            CLK_2(O)                                                                          KCLK                     | ACK(I)          + | 
+//TX-		  IO6                            DAT(I)(1)            D3_2(I)             D3_2(I)             D1 (I)(*)             D1 (I)(*)         D1 (I)(*)             MCLK                     | CMD(O)          + |    
+//TX+		  IN7                            D0_2(I)              D0_2(I)             D3 (I)(*)           D3 (I)(*)             D3 (I)(*)         D3 (I)(*)             MDAT                     | IRQ10(I)          | 
 //
 //(1) Alternate output of DAT (for male-to-male extension cables which cross Tx,Rx lines)
 
@@ -101,7 +106,20 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     output reg CART_PIN31_DIR,
     //debug
     output wire [3:0] DBG_TX,
-    output wire o_stb
+    output wire o_stb,
+
+    //PS/2 Keyboard interface decoded
+    output wire  o_ps2_code_new,
+    output wire [7:0] o_ps2_code,
+
+    //PS/2 Mouse interface decoded
+    output wire              o_mouse_valid,
+    output wire [2:0]        o_mouse_btn,
+    output wire signed [8:0] o_mouse_dx,
+    output wire signed [8:0] o_mouse_dy,
+    output wire signed [4:0] o_mouse_dz,
+    output wire              o_mouse_ready
+    
 ); 
     //
     logic SNAC_OUT1 ; //cart_tran_bank1[6]                                           D-
@@ -114,6 +132,11 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     logic SNAC_IO6_A ;//Conf.A: pin31(in),                Conf.B: pin31(out)         TX-
     logic SNAC_IO6_B ;//Conf.A: pin31(in),                Conf.B: pin31(out)         TX-
     logic SNAC_IN7 ;   //cart_tran_bank0[5]                                          TX+
+
+    wire mouse_clk_oe;
+    wire mouse_dat_oe;
+    wire mouse_busy;    //=~init_done|runtime  (frozen keyboard and SERLAT game controller interface).
+
     
     //calculate step sizes for fract clock enables
     // localparam pce_compat_polling_freq    =  20_000; //  20_000 / 5 =   4K samples/sec PCE
@@ -187,6 +210,10 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     localparam GC_PCE_MULTITAP    = 5'h6;
     localparam GC_DB15_FAST       = 5'h9;
     localparam GC_SNES_SWAP       = 5'hB;
+    localparam GC_PS2_NES         = 5'hC; //12 PS/2 K&M + NES 1P
+    localparam GC_PS2_SNES        = 5'hD; //13 PS/2 K&M + SNES 1P
+    localparam GC_PS2_DB15        = 5'hE; //14 PS/2 K&M + DB15 2P
+    localparam GC_PS2_NONE        = 5'hF; //15 PS/2 K&M + sin mando SNAC
     localparam GC_PSX             = 5'h10; //16 PSX 125KHz
     localparam GC_PSX_FAST        = 5'h11; //17 PSX 250KHz
     localparam GC_PSX_ANALOG      = 5'h12; //16 PSX 125KHz
@@ -220,6 +247,9 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     reg pce_ena;
     reg psx_ena;
 
+    //check specific case for PS/2 SNAC options
+    wire ps2_group = (game_cont_type == GC_PS2_NES)  || (game_cont_type == GC_PS2_SNES) ||
+                     (game_cont_type == GC_PS2_DB15) || (game_cont_type == GC_PS2_NONE);
     always @(posedge i_clk) begin
         case (game_cont_type)
             GC_PSX, GC_PSX_ANALOG: begin
@@ -277,7 +307,22 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
                 pce_ena    <= 1'b1;
                 strobe_step_size <= pce_fast_pstep;
             end
-            
+
+            GC_PS2_NES, GC_PS2_SNES: begin //0xC, 0xD : 1 jugador NES/SNES
+                serlat_ena <= 1'b1;
+                strobe_step_size <= snes_compat_pstep;
+            end
+            GC_PS2_DB15: begin             //0xE : 2 jugadores DB15
+                serlat_ena <= 1'b1;
+                strobe_step_size <= serlatch_normal_pstep;
+            end
+            GC_PS2_NONE: begin             //0xF : solo teclado+raton, sin mando SNAC
+                serlat_ena <= 1'b0;
+                pce_ena    <= 1'b0;
+                psx_ena    <= 1'b0;
+                strobe_step_size <= 33'h0;
+            end
+
            default: begin//disabled
                 serlat_ena <= 1'b0;
                 pce_ena    <= 1'b0;
@@ -290,14 +335,18 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     always @(posedge i_clk) begin
         case (conf_AB)         
             CONF_A: begin
-                CART_BK0_DIR                   <= 1'b0;                                           //INPUT
-                {SNAC_IN4,SNAC_IN7,SNAC_IO3_A} <= {CART_BK0_IN[7],CART_BK0_IN[5],CART_BK0_IN[4]}; //OUTPUT
-                CART_BK1_OUT_P76                <= {SNAC_OUT2,SNAC_OUT1};                          //OUTPUT 
-                CART_PIN30_DIR                 <= 1'b1;                                           //OUTPUT 
-                CART_PIN30_OUT                 <= SNAC_IO5_A; 
-                CART_PIN31_DIR                 <= 1'b0;                                           //INPUT
-                SNAC_IO6_A                     <= CART_PIN31_IN;  
-            end 
+                //bank0: input by default, with PS/2 mouse commute it for MDAT (bank0[5])
+                CART_BK0_DIR                   <= ps2_group ? mouse_dat_oe : 1'b0;
+                CART_BK0_OUT                   <= 4'b0000;   // simulated open-drain
+                {SNAC_IN4,SNAC_IN7,SNAC_IO3_A} <= {CART_BK0_IN[7],CART_BK0_IN[5],CART_BK0_IN[4]};
+                CART_BK1_OUT_P76               <= {SNAC_OUT2,SNAC_OUT1};
+                CART_PIN30_DIR                 <= ps2_group ? 1'b0 : 1'b1;   // KCLK for PS/2 keyboard
+                CART_PIN30_OUT                 <= SNAC_IO5_A;
+                //pin31(MCLK): PS/2 mouse commute it to output while is inhibited.
+                CART_PIN31_DIR                 <= ps2_group ? mouse_clk_oe : 1'b0;
+                CART_PIN31_OUT                 <= 1'b0;      // simulated open-drain
+                SNAC_IO6_A                     <= CART_PIN31_IN;
+            end
             CONF_B: begin 
                 CART_BK0_DIR                    <= 1'b0;                                           //INPUT
                 {SNAC_IN4,SNAC_IO5_B,SNAC_IN7} <= {CART_BK0_IN[7],CART_BK0_IN[6],CART_BK0_IN[5]}; //OUTPUT
@@ -372,11 +421,18 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
         i_D3_r <= {i_D3_r[0],SNAC_IO6_A};
         i_D4_r <= {i_D4_r[0],SNAC_IN4};
     end
+
+    // Choose a serial latch type based on the game controller type. For PS/2 NES/SNES/DB15, use a specific type; otherwise, use the lower 4 bits of the game controller type.
+        wire [3:0] serlat_type =
+        (game_cont_type == GC_PS2_NES)  ? 4'h2 :   //NES
+        (game_cont_type == GC_PS2_SNES) ? 4'h3 :   //SNES
+        (game_cont_type == GC_PS2_DB15) ? 4'h1 :   //DB15
+                                          game_cont_type[3:0]; //default if not PS/2 NES/SNES/DB15, use the lower 4 bits of the game controller type
     serlatch_game_controller #(.MASTER_CLK_FREQ(MASTER_CLK_FREQ)) slgc
     (
         .i_clk(i_clk),
-        .i_rst(reset_on_change),
-        .game_controller_type(game_cont_type[3:0]), //0x1 DB15, 0x2 NES, 0x3 SNES, 0x9 DB15 FAST, 0XB SNES SWAP A,B<->X,Y
+        .i_rst(reset_on_change | mouse_busy),
+        .game_controller_type(serlat_type),
         .i_stb(stb_clk),
         .p1_btn_state(sl_p1),
         .p2_btn_state(sl_p2),
@@ -385,8 +441,8 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
         .o_clk(SERLAT_SNAC_OUT1), //shared for 2 controllers
         .o_clk2(SNAC_IO5_A),
         .o_lat(SERLAT_SNAC_OUT2), //shared for 2 controllers
-        .i_dat1((game_cont_type == 5'h1 || game_cont_type == 5'h9) ? SNAC_IO3_A & SNAC_IO6_A : SNAC_IO3_A ), //data from controller 1
-        .i_dat2(SNAC_IN7)  //data from controller 2
+        .i_dat1(((serlat_type == 4'h1 || serlat_type == 4'h9) && !ps2_group) ? SNAC_IO3_A & SNAC_IO6_A : SNAC_IO3_A ), //data from controller 1
+        .i_dat2(ps2_group ? 1'b1 : SNAC_IN7)  //data from controller 2
     );
 
     //PCENGINE game controller
@@ -487,6 +543,31 @@ pcengine_game_controller_multitap #(.MASTER_CLK_FREQ(MASTER_CLK_FREQ)) pcegmutit
             p3_btn_state = 16'h0;
             p4_btn_state = 16'h0;
         end
+        GC_PS2_SNES: begin //0xD : SNES 1P
+            SNAC_OUT1 = SERLAT_SNAC_OUT1;
+            SNAC_OUT2 = SERLAT_SNAC_OUT2;
+            p1_btn_state = sl_p1;
+            p2_btn_state = 16'h0; //1 jugador
+            p3_btn_state = 16'h0;
+            p4_btn_state = 16'h0;
+        end
+        GC_PS2_DB15: begin //0xE : DB15 2P
+            SNAC_OUT1 = SERLAT_SNAC_OUT1;
+            SNAC_OUT2 = SERLAT_SNAC_OUT2;
+            p1_btn_state = sl_p1;
+            p2_btn_state = sl_p2;
+            p3_btn_state = 16'h0;
+            p4_btn_state = 16'h0;
+        end
+        GC_PS2_NES: begin //0xC : NES 1P
+            SNAC_OUT1 = SERLAT_SNAC_OUT1;
+            SNAC_OUT2 = SERLAT_SNAC_OUT2;
+            p1_btn_state = sl_p1;
+            p2_btn_state = 16'h0;
+            p3_btn_state = 16'h0;
+            p4_btn_state = 16'h0;
+        end
+        //GC_PS2_NONE (0xF) default case
         default: begin
             SNAC_OUT1 = 1'b0;
             SNAC_OUT2 = 1'b0;
@@ -497,4 +578,57 @@ pcengine_game_controller_multitap #(.MASTER_CLK_FREQ(MASTER_CLK_FREQ)) pcegmutit
         end
         endcase
     end
+
+    //=========================================================================
+    // PS/2 Keyboard SNAC
+    // Generic ps2_keyboard with debounce: returns scancode
+    //   KCLK = CART_PIN30_IN   (pin30)
+    //   KDAT = CART_BK0_IN[7]  (bank0[7])
+    //=========================================================================
+    // debounce ~11-12 us: 2^size/CLK ~ 12us
+    localparam int PS2_DEBOUNCE_SIZE = $clog2(MASTER_CLK_FREQ / 85_000);
+
+    wire kbd_code_new_i;
+
+    ps2_keyboard #(
+        .clk_freq              (MASTER_CLK_FREQ),
+        .debounce_counter_size (PS2_DEBOUNCE_SIZE)
+    ) ps2_kbd_snac (
+        .clk          (i_clk),
+        .ps2_clk      (CART_PIN30_IN),   // KCLK
+        .ps2_data     (CART_BK0_IN[7]),  // KDAT
+        .ps2_code_new (kbd_code_new_i),
+        .ps2_code     (o_ps2_code)
+    );
+    assign o_ps2_code_new = kbd_code_new_i & ~mouse_busy;
+
+
+    //=========================================================================
+    // PS/2 Mouse SNAC
+    //   MCLK = CART_PIN31_IN (pin31, inidividual dir)
+    //   MDAT = CART_BK0_IN[5] (bank0[5], shared dir)
+    //=========================================================================
+//    ps2_mouse #(
+//        .CLK_HZ       (MASTER_CLK_FREQ),
+//        .ENABLE_WHEEL (1'b1)
+//    ) ps2_mouse_snac (
+//        .clk        (i_clk),
+//        .rst        (i_rst | ~ps2_group),   // solo activo en configs K&M (0xC..0xF)
+//        .ps2_clk_i  (CART_PIN31_IN),        // MCLK
+//        .ps2_dat_i  (CART_BK0_IN[5]),       // MDAT
+//        .ps2_clk_oe (mouse_clk_oe),         // -> CART_PIN31_DIR (ver edit 3)
+//        .ps2_dat_oe (mouse_dat_oe),         // -> CART_BK0_DIR   (ver edit 3)
+//        .bus_req    (mouse_busy),           // congela teclado/SERLAT
+//        .bus_grant  (1'b1),                 // unico transmisor del banco
+//        .bus_busy   (1'b0),
+//        .cmd_wr(1'b0), .cmd_din(8'h00), .cmd_ready(), .cmd_done(), .cmd_ack(),
+//        .init_done  (o_mouse_ready),
+//        .has_wheel  (),
+//        .mouse_valid(o_mouse_valid),
+//        .btn        (o_mouse_btn),
+//        .dx         (o_mouse_dx),
+//        .dy         (o_mouse_dy),
+//        .dz         (o_mouse_dz),
+//        .x_ovf(), .y_ovf()
+//    );
 endmodule

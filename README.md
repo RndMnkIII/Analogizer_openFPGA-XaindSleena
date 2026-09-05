@@ -3,6 +3,10 @@
 * [0.1.3 28/06/2025] Fixed Y/C and YPbPr video outputs. Fixed disable Pocket screen Analogizer option. Improved SDRAM controller stability.
 * [0.1.5 27/07/2025] Fixed VBlank core signal. No trash data on the first line of Pocket screen.
 * [0.1.6 28/07/25] Fixed video.json width
+* [0.1.7 05/09/26] Added 68705-P5 MCU support using José Tejada @topapate [jt6805](https://github.com/jotego/jtcores/tree/master/modules/jt680x) core.
+                   Added PS/2 keyboard support for P1/P2 players following MAME conventions. You can mix also with NES/SNES/DB15 game controls.
+                   Fixed coin behaviour, now when a coin key press is detected a coin pulse of configurable duration is used instead.
+
 ![Xaind Sleena](/doc/PORTADA.jpg)
 
 Pocket port of original Xain'd Sleena MiSTer FPGA core that I created in 2022. This release includes native
@@ -65,15 +69,20 @@ The core can output RGBS, RGsB, YPbPr, Y/C and SVGA scandoubler (50% scanlines) 
 
 🔹 Tested with Sony PVM-9044D
 
-| :SNAC game controller:  | Analogizer A/B config Switch | Status |
-| :---------------------- | :--------------------------- | :----: |
-| DB15                    | A                            |  ✅    |
-| NES                     | A                            |  ✅    |
-| SNES                    | A                            |  ✅    |
-| PCENGINE                | A                            |  ✅    |
-| PCE MULTITAP            | A                            |  ✅    |
-| PSX DS/DS2 Digital DPAD | B                            |  ✅    |
-| PSX DS/DS2 Analog  DPAD | B                            |  ✅    |
+| :SNAC game controller:                          | Analogizer A/B config Switch | Status |
+| :---------------------------------------------- | :--------------------------- | :----: |
+| DB15                                            | A                            |  ✅    |
+| NES                                             | A                            |  ✅    |
+| SNES                                            | A                            |  ✅    |
+| PCENGINE                                        | A                            |  ✅    |
+| PCE MULTITAP                                    | A                            |  ✅    |
+| PSX DS/DS2 Digital DPAD                         | B                            |  ✅    |
+| PSX DS/DS2 Analog  DPAD                         | B                            |  ✅    |
+| PSX DS/DS2 Analog  DPAD                         | B                            |  ✅    |
+| PS/2 Keyboard & Mouse + NES One Player          | A                            |  ✅    |
+| PS/2 Keyboard & Mouse + SNES One Player         | A                            |  ✅    |
+| PS/2 Keyboard & Mouse + DB15 Two Players        | A                            |  ✅    |
+| PS/2 Keyboard & Mouse + No SNAC game controller | A                            |  ✅    |
 
 The Analogizer interface allow to mix game inputs from compatible SNAC gamepads supported by Analogizer (DB15 Neogeo, NES, SNES, PCEngine, PSX) with Analogue Pocket built-in controls or from Dock USB or wireless supported controllers (Analogue support).
 
@@ -116,8 +125,8 @@ You are not allowed to distribute and/or copy any rom contents related to this g
 of the hardware to use the ROM contents with this recreation. Use MRAtool to create the required `xsleenab.rom` or `xsleenaba.rom` files and place inside of `/Assets/xainsleena/common` folder.
 
 ## Acknowledgments
+* __José Tejada__ (__@topapate__) for his [jt6805](https://github.com/jotego/jtcores/tree/master/modules/jt680x) and [jt12](https://github.com/jotego/jt12) core and some advice about use it.
 * __Martin Donlon__ (__@Wickerwaka__) for helping with the SDRAM controller and PLL reconfig, based on its fabulous Irem-M72 core (https://github.com/MiSTer-devel/Arcade-IremM72_MiSTer).
-* __@topapate__ for his JT12 core (https://github.com/jotego/jt12).
 * __marcusJordan__ for Pocket interface files from OpenGateWare project.
 
 * To all Ko-fi contributors for supporting this project:__

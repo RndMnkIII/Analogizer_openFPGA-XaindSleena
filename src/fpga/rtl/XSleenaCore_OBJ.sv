@@ -110,7 +110,7 @@ module XSleenaCore_OBJ (
 	logic [7:0] SRAM_Din, SRAM_Dout, SRAM_Dout2;
 //CPU OVERCLOCK HACK
 // `ifdef CPU_OVERCLOCK_HACK
-	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("rnd512B.bin_vmem.txt")) ic3(
+	SRAM_dual_sync #(.DATA_WIDTH(8), .ADDR_WIDTH(9)) ic3(
 		.clk0(clk),
 		.clk1(clk),
 		.ADDR0(AB[8:0]),
@@ -313,7 +313,7 @@ module XSleenaCore_OBJ (
 	// //TMM2018-55 2Kx8bit 55ns SRAM
 	// //ONLY USED 127 bytes
 	logic [7:0] SRAM_OBJ0_Dout;
-		SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(7), .DATA_HEX_FILE("rnd128B_vmem.txt")) ic101(
+		SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(7)) ic101(
 		.clk(clk),
 		.ADDR({ic67_Y[2:0],ic84_Y[3:0]}),
 		.DATA(OBJDB0),
@@ -328,7 +328,7 @@ module XSleenaCore_OBJ (
 	// //TMM2018-55 2Kx8bit 55ns SRAM
 	// //ONLY USED 127 bytes
 	logic [7:0] SRAM_OBJ1_Dout;
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(7), .DATA_HEX_FILE("rnd128B_vmem.txt")) ic100(
+	SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(7)) ic100(
 		.clk(clk),
 		.ADDR({ic66_Y[2:0],ic83_Y[3:0]}),
 		.DATA(OBJDB1),
@@ -692,7 +692,7 @@ module XSleenaCore_OBJ (
 	// //TMM2018-55 2Kx8bit 55ns SRAM
 	// //ONLY USED 256 bytes
 	logic [7:0] SRAM_DBUS0_Out, SRAM_DBUS0_In; 
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(8), .DATA_HEX_FILE("rnd256B_vmem.txt")) ic117(
+	SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(8)) ic117(
 		.clk(clk),
 		.ADDR({ic139c,ic139b,ic139d,ic139a,ic124c,ic124b,ic124d,ic124a}),
 		.DATA(SRAM_DBUS0_In),
@@ -707,7 +707,7 @@ module XSleenaCore_OBJ (
 	// //TMM2018-55 2Kx8bit 55ns SRAM
 	// //ONLY USED 256 bytes
 	logic [7:0] SRAM_DBUS1_Out, SRAM_DBUS1_In; 
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(8), .DATA_HEX_FILE("rnd256B_vmem.txt")) ic120(
+	SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(8)) ic120(
 		.clk(clk),
 		.ADDR({ic142c,ic142b,ic142d,ic142a,ic127c,ic127b,ic127d,ic127a}),
 		.DATA(SRAM_DBUS1_In),

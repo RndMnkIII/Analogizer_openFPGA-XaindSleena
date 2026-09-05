@@ -846,6 +846,29 @@ module core_top
     //Synchronize vid_mode into clk_74a domain before usage
     synch_3 #(.WIDTH(1)) sync_vid_mode(vid_mode, vid_mode_s, clk_74a);
 
+    // Coin Pulse Generator
+    logic coin1_p, coin2_p;
+
+    coin_pulse #(
+        .CLK_HZ  (48_000_000),
+        .PULSE_MS(50)
+    ) u_coin1 (
+        .clk  (clk_sys),
+        .reset(reset),
+        .key  (p1_controls[14]),
+        .coin (coin1_p)
+    );
+
+    coin_pulse #(
+        .CLK_HZ  (48_000_000),
+        .PULSE_MS(50)
+    ) u_coin2 (
+        .clk  (clk_sys),
+        .reset(reset),
+        .key  (p2_controls[14]),
+        .coin (coin2_p)
+    );
+
 //Xain'd Sleena uses only one set of game controls and 2 start buttons that are needed for play a continue
 logic [7:0] PLAYER1, PLAYER2;
 logic SERVICE;
@@ -854,7 +877,7 @@ logic SERVICE;
 //               {2P,1P,1PSW2,1PSW1,1PD,1PU,1PL,1PR} 
 assign PLAYER1 = {~{p2_controls[15] | p1_controls[8]}, ~p1_controls[15],~p1_controls[5],~p1_controls[4],~p1_controls[1],~p1_controls[0],~p1_controls[2],~p1_controls[3]};
 //               {COIN2,COIN1,2PSW2,2PSW1,2PD,2PU,2PL,2PR}             
-assign PLAYER2 = {~p2_controls[14],                   ~p1_controls[14],~p2_controls[5],~p2_controls[4],~p2_controls[1],~p2_controls[0],~p2_controls[2],~p2_controls[3]};
+assign PLAYER2 = {~coin2_p,~coin1_p,~p2_controls[5],~p2_controls[4],~p2_controls[1],~p2_controls[0],~p2_controls[2],~p2_controls[3]};
 assign SERVICE = 1'b1; //Not used in game
 
 //Xain_top interface
@@ -867,39 +890,13 @@ logic vsync2_core;
 //logic csync_core;
 logic ce_pixel_core;
 
-//fix VSync (advance 2 pixel clock periods to align VSYNC rising edge with hsync rising edge)
-// logic ce_pixel_old;
-// logic [7:0] video_r_core_r1, video_r_core_r2;
-// logic [7:0] video_g_core_r1, video_g_core_r2;
-// logic [7:0] video_b_core_r1, video_b_core_r2;
-// logic hblank_core_r1, vblank_core_r1, hblank_core_r2, vblank_core_r2;
-// logic hsync_core_r1, hsync_core_r2;
-
-// always @(posedge clk_vid) begin
-//         video_r_core_r2 <= video_r_core_r1;
-//         video_g_core_r2 <= video_g_core_r1;
-//         video_b_core_r2 <= video_b_core_r1;
-//         hblank_core_r2  <= hblank_core_r1;
-//         vblank_core_r2  <= vblank_core_r1;
-//         hsync_core_r2   <= hsync_core_r1;
-//         video_r_core    <= video_r_core_r2;
-//         video_g_core    <= video_g_core_r2;
-//         video_b_core    <= video_b_core_r2;
-//         hblank_core     <= hblank_core_r2;
-//         vblank_core     <= vblank_core_r2;
-//         hsync_core      <= hsync_core_r2;
-// end
-//end of fix VSync
-
-
 xain_top #(.DBG_VIDEO(0)) xs_top(
     // Clocks & Reset
     .clk            (clk_sys),             // System clock
     .reset          (reset),           // Reset
     .init(~pll_core_locked_s),            // SDRAM Initialization
-	.pause((pause_core & ~reset) | reconfig_pause_s),
+	 .pause((pause_core & ~reset) | reconfig_pause_s),
     .credits(toggle_credits_pause), // Pause for credits (R1 button)
-    //.pause(1'b0),
 
     // Modifiers
     .MODSW          (mod_sw0), //mod_sw0[1] X2 CPU turbo mode
@@ -964,6 +961,11 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
     // .btn4(p1_controls[7])  //VBLANK_CORE
 );
 /*[ANALOGIZER_HOOK_BEGIN]*/
+    localparam GC_PS2_NES         = 5'hC; //12 PS/2 K&M + NES 1P
+    localparam GC_PS2_SNES        = 5'hD; //13 PS/2 K&M + SNES 1P
+    localparam GC_PS2_DB15        = 5'hE; //14 PS/2 K&M + DB15 2P
+    localparam GC_PS2_NONE        = 5'hF; //15 PS/2 K&M + sin mando SNAC
+    
     //reg analogizer_ena;
     wire [3:0] analogizer_video_type;
     wire [4:0] snac_game_cont_type;
@@ -984,6 +986,42 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
     reg  [15:0] p1_controls, p2_controls;
 
     wire snac_is_analog = (snac_game_cont_type == 5'h12) || (snac_game_cont_type == 5'h13);
+
+
+   // Are in PS/2 K&M mode?
+    wire ps2_mode = analogizer_ena &&
+        ((snac_game_cont_type == GC_PS2_NES)  ||
+        (snac_game_cont_type == GC_PS2_SNES) ||
+        (snac_game_cont_type == GC_PS2_DB15) ||
+        (snac_game_cont_type == GC_PS2_NONE));
+
+    // ---- Pad SNAC en formato Pocket (igual que en tu lógica existente) ----
+    wire [15:0] snac_p1_word = {p1_btn[15:4], p1_right, p1_left, p1_down, p1_up};
+    wire [15:0] snac_p2_word = {p2_btn[15:4], p2_right, p2_left, p2_down, p2_up};
+
+    // ---- Teclado -> palabra de control en formato Pocket ----
+    // AJUSTA las posiciones de bit de botones/coin/start si tu core decodifica
+    // cont1_key de otra forma. Layout estándar del Pocket:
+    //   [3:0]=up/down/left/right, [4]=A, [5]=B, [14]=select, [15]=start
+    wire [15:0] kbd_p1_word = {
+        kb_start1,        // 15  start
+        kb_coin1,         // 14  select/coin  (PULSADO)
+        2'b00,            // 13:12  L3/R3
+        2'b00,            // 11:8   L2/R2/L1/R1, also map P2 start to L1 
+		  kb_coin2,
+		  1'b0, 
+        2'b00,            // 7:6    Y/X
+        kb_p1_b2,         // 5   B -> salto
+        kb_p1_b1,         // 4   A -> disparo
+        kb_p1_right,      // 3
+        kb_p1_left,       // 2
+        kb_p1_down,       // 1
+        kb_p1_up          // 0
+    };
+    wire [15:0] kbd_p2_word = {
+        kb_start2, kb_coin2, 2'b00, 4'b0000, 2'b00,
+        kb_p2_b2, kb_p2_b1, kb_p2_right, kb_p2_left, kb_p2_down, kb_p2_up
+    };
 
     //! Player 1 ---------------------------------------------------------------------------
     reg p1_up, p1_down, p1_left, p1_right;
@@ -1015,16 +1053,37 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         p2_left  <= (snac_is_analog) ? p2_left_analog  : p2_btn[2];
         p2_right <= (snac_is_analog) ? p2_right_analog : p2_btn[3];
     end
+
     always @(posedge clk_74a) begin
         reg [31:0] p1_pocket_btn, p1_pocket_joy;
         reg [31:0] p2_pocket_btn, p2_pocket_joy;
 
-        if((snac_game_cont_type == 5'h0) || !analogizer_ena) begin //SNAC is disabled
-        //if((snac_game_cont_type == 5'h0)) begin //SNAC is disabled
+        if((snac_game_cont_type == 5'h0) || !analogizer_ena) begin //SNAC deshabilitado
             p1_controls <= cont1_key;
             p2_controls <= cont2_key;
         end
-        else begin
+        else if(ps2_mode) begin //Modos PS/2: inyectar teclado (+ pad SNAC donde exista)
+            case(snac_game_cont_type)
+            GC_PS2_NONE: begin //0xF: solo teclado
+                p1_controls <= kbd_p1_word;
+                p2_controls <= kbd_p2_word;
+                end
+            GC_PS2_NES,
+            GC_PS2_SNES: begin //0xC/0xD: teclado + pad 1P -> P1
+                p1_controls <= kbd_p1_word | snac_p1_word;
+                p2_controls <= kbd_p2_word;
+                end
+            GC_PS2_DB15: begin //0xE: teclado + 2 pads
+                p1_controls <= kbd_p1_word | snac_p1_word;
+                p2_controls <= kbd_p2_word | snac_p2_word;
+                end
+            default: begin
+                p1_controls <= kbd_p1_word;
+                p2_controls <= kbd_p2_word;
+                end
+            endcase
+        end
+        else begin //SNAC habilitado (sin PS/2): tu lógica de asignación original
         case(snac_cont_assignment[1:0])
         2'h0:    begin  //SNAC P1 -> Pocket P1
             p1_controls <= {p1_btn[15:4],p1_right,p1_left,p1_down,p1_up};
@@ -1190,11 +1249,16 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
        .vsync_in(VSync),
        .hblank(hblank_core),
        .vblank(vblank_core),
-       .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
-       .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
-       .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
-       .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
-       .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
+    //    .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
+    //    .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
+    //    .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
+    //    .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
+    //    .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
+       .key_right(), //Detects if Start+Left was pressed
+       .key_left( ),//Detects if Start+Right was pressed
+       .key_down(),    //Detects if Start+Up was pressed
+       .key_up(),    //Detects if Start+Down was pressed
+       .key_A(),    //Detects if Start+A was pressed
        .R_out(RGB_out_R),
        .G_out(RGB_out_G),
        .B_out(RGB_out_B),
@@ -1222,7 +1286,6 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         .i_rst_apf(reset), //i_rst_apf is active high
         .i_rst_core(reset), //i_rst_core is active high
         .i_ena(analogizer_ena),
-        //.i_ena(1'b1),
 
         //Video interface
         .video_clk(clk_sys),
@@ -1233,14 +1296,7 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         .Vblank(VB_out),
         .Hsync(HS_out), //composite SYNC on HSync.
         .Vsync(VS_out),
-        // .video_clk(clk_sys),
-        // .R(video_r_core),
-        // .G(video_g_core),
-        // .B(video_b_core),
-        // .Hblank(hblank_core),
-        // .Vblank(vblank_core),
-        // .Hsync(hsync_core), //composite SYNC on HSync.
-        // .Vsync(vsync_core),
+
         //openFPGA Bridge interface
         .bridge_endian_little(bridge_endian_little),
         .bridge_addr(bridge_addr),
@@ -1250,6 +1306,7 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         .bridge_wr_data(bridge_wr_data),
 
         //Analogizer settings
+        .analogizer_ena_out(),
         .snac_game_cont_type_out(snac_game_cont_type),
         .snac_cont_assignment_out(snac_cont_assignment),
         .analogizer_video_type_out(analogizer_video_type),
@@ -1289,7 +1346,65 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         .cart_tran_pin31(cart_tran_pin31),
         .cart_tran_pin31_dir(cart_tran_pin31_dir),
         //debug
-        .o_stb()
+        .o_stb(),
+        .o_ps2_code_new(snac_ps2_code_new),
+        .o_ps2_code(snac_ps2_code),
+        .o_mouse_valid(),
+        .o_mouse_btn  (),
+        .o_mouse_dx   (),
+        .o_mouse_dy   (),
+        .o_mouse_dz   (),
+        .o_mouse_ready()
+    );
+
+        logic [7:0]  snac_ps2_code;
+        logic        snac_ps2_code_new;
+        
+ 
+    // ---- Controles finales hacia el core ------------------------------------
+    logic       kb_p1_up;
+    logic       kb_p1_down;
+    logic       kb_p1_left;
+    logic       kb_p1_right;
+    logic       kb_p1_b1;        
+    logic       kb_p1_b2;        
+    logic       kb_p2_up;
+    logic       kb_p2_down;
+    logic       kb_p2_left;
+    logic       kb_p2_right;
+    logic       kb_p2_b1;
+    logic       kb_p2_b2;
+    logic       kb_coin1;        
+    logic       kb_coin2;        
+    logic       kb_start1;
+    logic       kb_start2;
+    logic       kb_pause;
+
+    kbd_to_controls u_kbd (
+    .clk       (clk_sys),
+    .reset     (reset),
+    .code_valid(snac_ps2_code_new),
+    .scancode  (snac_ps2_code),
+
+    .p1_up     (kb_p1_up),
+    .p1_down   (kb_p1_down),
+    .p1_left   (kb_p1_left),
+    .p1_right  (kb_p1_right),
+    .p1_b1     (kb_p1_b1),
+    .p1_b2     (kb_p1_b2),
+
+    .p2_up     (kb_p2_up),
+    .p2_down   (kb_p2_down),
+    .p2_left   (kb_p2_left),
+    .p2_right  (kb_p2_right),
+    .p2_b1     (kb_p2_b1),
+    .p2_b2     (kb_p2_b2),
+
+    .coin1     (kb_coin1), 
+    .coin2     (kb_coin2),
+    .start1    (kb_start1),
+    .start2    (kb_start2),
+    .pause     (kb_pause)
     );
     /*[ANALOGIZER_HOOK_END]*/
 endmodule

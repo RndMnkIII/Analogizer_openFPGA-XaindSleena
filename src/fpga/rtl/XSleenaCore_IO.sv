@@ -24,7 +24,7 @@ module XSleenaCore_IO (
 	input wire JAMMA_b,  //Unknow Conn J3X2 D3 1S953, R   1K, R   100, 0.01uF
 
 	//only for MCU protected versions
-	input wire P5READn,
+	input wire P5READYn,
 	input wire P5ACCEPTn,
 
 	//Outputs and register map
@@ -117,8 +117,8 @@ module XSleenaCore_IO (
 		else if (!ic91_Y[3]) begin //*3A03R DSW2
 			DB_out <= DSW2;
 		end
-		else if (!ic91_Y[5]) begin //*3A05R JAMMA24, JAMMAb, SERVICE, *P5READ, *P5ACCEPT, VBLK
-			DB_out <= {2'b11,VBLK,P5ACCEPTn,P5READn,SERVICE,JAMMA_b,JAMMA_24};
+		else if (!ic91_Y[5]) begin //*3A05R JAMMA24, JAMMAb, SERVICE, *P5READY, *P5ACCEPT, VBLK
+			DB_out <= {2'b11,VBLK,P5ACCEPTn,P5READYn,SERVICE,JAMMA_b,JAMMA_24};
 		end
 		else
 			DB_out <= 8'hFF;

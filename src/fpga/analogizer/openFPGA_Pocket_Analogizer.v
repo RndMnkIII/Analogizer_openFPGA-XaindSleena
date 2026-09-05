@@ -1,11 +1,11 @@
 //This module encapsulates all Analogizer adapter signals
-// Original work by @RndMnkIII. 
-// Date: 05/2024 
+// Original work by @RndMnkIII. With code modules from @MikeSimonson, @Mist-Project, @RandyS, @jotego, Scott Larson,  @tomasz and others.
 // Releases: 
-// * 1.0 05/2024    Initial RGBS output mode
-// * 1.1            Added SOG modes: RGsB, YPbPt
-// * 1.2            Added Mike Simon Y/C module, Scandoubler SVGA Mist module.     
-// * 1.3 11/02/2025 Added Bridge interface to directly access to the Analogizer settings, now returns the settings. Added NES SNAC Zapper support.
+// * 1.0 [01/01/2024] Initial RGBS output mode
+// * 1.1              Added SOG modes: RGsB, YPbPt
+// * 1.2              Added Mike Simon Y/C module, Scandoubler SVGA Mist module.     
+// * 1.3 [11/02/2025] Added Bridge interface to directly access to the Analogizer settings, now returns the settings. Added NES SNAC Zapper support.
+// * 1.4 [20/08/2026] Added PS/2 Keyboard and Mouse support (hook) + NES/SNES/DB15 SNAC game adapter. Needs custom SNAC adapter. Analogizer global enable/disable is read from configuration file.
 
 // *** Analogizer R.3 adapter ***
 // * WHEN SOG SWITCH IS IN ON POSITION, OUTPUTS CSYNC ON G CHANNEL
@@ -75,7 +75,6 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 	input  wire i_clk,
 	input  wire i_rst_apf, //active High
     input  wire i_rst_core,//active High
-	input  wire i_ena,
 	//Video interface
 	input  wire video_clk,
 	input  wire [7:0] R,
@@ -95,6 +94,8 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 	input  wire [31:0] bridge_wr_data,
 
 	//Analogizer settings
+	input  wire       i_ena,
+	output wire       analogizer_ena_out,
 	output wire [4:0] snac_game_cont_type_out,
 	output wire [3:0] snac_cont_assignment_out,
 	output wire [3:0] analogizer_video_type_out,
@@ -142,7 +143,17 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 	output  wire            cart_tran_pin31_dir,
     //debug
 	output wire [3:0] DBG_TX,
-    output wire o_stb
+    output wire o_stb,
+	//PS/2 Keyboard SNAC interface decoded
+    output wire       o_ps2_code_new,
+    output wire [7:0] o_ps2_code, 
+     //PS/2 Mouse SNAC interface decoded
+    output wire              o_mouse_valid,
+    output wire [2:0]        o_mouse_btn,
+    output wire signed [8:0] o_mouse_dx,
+    output wire signed [8:0] o_mouse_dy,
+    output wire signed [4:0] o_mouse_dz,
+    output wire              o_mouse_ready
 );
 
 	//Configuration file dat
@@ -196,6 +207,8 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 	reg i_busyrr;
 
   always @(posedge i_clk) begin
+	//analogizer_ena        <= analogizer_config_s[5] | i_ena;
+	analogizer_ena        <= i_ena;
     snac_game_cont_type   <= analogizer_config_s[4:0];
     snac_cont_assignment  <= analogizer_config_s[9:6];
     analogizer_video_type <= analogizer_config_s[13:10];	
@@ -219,6 +232,7 @@ reg [2:0] SC_fx;
 reg       pocket_blank_screen;
 reg       analogizer_osd_out2;
 
+assign analogizer_ena_out        = analogizer_ena;
 assign analogizer_video_type_out = analogizer_video_type;
 assign snac_game_cont_type_out   = snac_game_cont_type;
 assign snac_cont_assignment_out  = snac_cont_assignment;
@@ -266,7 +280,19 @@ assign analogizer_osd_out        = analogizer_osd_out2;
 		.CART_PIN31_DIR(CART_PIN31_DIR),
 		//debug
 		.DBG_TX(DBG_TX),
-    	.o_stb(o_stb)
+    	.o_stb(o_stb),
+
+		//PS/2 Keyboard SNAC: scancodes
+		.o_ps2_code_new(o_ps2_code_new),
+		.o_ps2_code(o_ps2_code),
+		
+		//PS/2 Mouse SNAC: decoded mouse data
+		.o_mouse_valid(o_mouse_valid),
+		.o_mouse_btn  (o_mouse_btn),
+		.o_mouse_dx   (o_mouse_dx),
+		.o_mouse_dy   (o_mouse_dy),
+		.o_mouse_dz   (o_mouse_dz),
+		.o_mouse_ready(o_mouse_ready)
 	); 
 
 
@@ -467,26 +493,26 @@ scanlines_analogizer #(0) VGA_scanlines
 
 	//infer tri-state buffers for cartridge data signals
 	//BK0
-	assign cart_tran_bank0         = i_rst_apf | ~i_ena ? 4'hf : ((CART_BK0_DIR) ? CART_BK0_OUT : 4'hZ);     //on reset state set ouput value to 4'hf
-	assign cart_tran_bank0_dir     = i_rst_apf | ~i_ena ? 1'b1 : CART_BK0_DIR;                              //on reset state set pin dir to output
+	assign cart_tran_bank0         = i_rst_apf | ~analogizer_ena ? 4'hf : ((CART_BK0_DIR) ? CART_BK0_OUT : 4'hZ);     //on reset state set ouput value to 4'hf
+	assign cart_tran_bank0_dir     = i_rst_apf | ~analogizer_ena ? 1'b1 : CART_BK0_DIR;                              //on reset state set pin dir to output
 	assign CART_BK0_IN             = cart_tran_bank0;
 	//BK3
-	assign cart_tran_bank3         = i_rst_apf | ~i_ena ? 8'hzz : {Rout[5:0],HsyncOut,VsyncOut};                          //on reset state set ouput value to 8'hZ
-	assign cart_tran_bank3_dir     = i_rst_apf | ~i_ena ? 1'b0  : 1'b1;                                     //on reset state set pin dir to input
+	assign cart_tran_bank3         = i_rst_apf | ~analogizer_ena ? 8'hzz : {Rout[5:0],HsyncOut,VsyncOut};                          //on reset state set ouput value to 8'hZ
+	assign cart_tran_bank3_dir     = i_rst_apf | ~analogizer_ena ? 1'b0  : 1'b1;                                     //on reset state set pin dir to input
 	//BK2
-	assign cart_tran_bank2         = i_rst_apf | ~i_ena ? 8'hzz : {Bout[0],BLANKnOut,Gout[5:0]};                          //on reset state set ouput value to 8'hZ
-	assign cart_tran_bank2_dir     = i_rst_apf | ~i_ena ? 1'b0  : 1'b1;                                     //on reset state set pin dir to input
+	assign cart_tran_bank2         = i_rst_apf | ~analogizer_ena ? 8'hzz : {Bout[0],BLANKnOut,Gout[5:0]};                          //on reset state set ouput value to 8'hZ
+	assign cart_tran_bank2_dir     = i_rst_apf | ~analogizer_ena ? 1'b0  : 1'b1;                                     //on reset state set pin dir to input
 	//BK1
-	assign cart_tran_bank1         = i_rst_apf | ~i_ena ? 8'hzz : {CART_BK1_OUT_P76,video_clk,Bout[5:1]};      //on reset state set ouput value to 8'hZ
-	assign cart_tran_bank1_dir     = i_rst_apf | ~i_ena ? 1'b0  : 1'b1;                                     //on reset state set pin dir to input
+	assign cart_tran_bank1         = i_rst_apf | ~analogizer_ena ? 8'hzz : {CART_BK1_OUT_P76,video_clk,Bout[5:1]};      //on reset state set ouput value to 8'hZ
+	assign cart_tran_bank1_dir     = i_rst_apf | ~analogizer_ena ? 1'b0  : 1'b1;                                     //on reset state set pin dir to input
 	//PIN30
-	assign cart_tran_pin30         = i_rst_apf | ~i_ena ? 1'bz : ((CART_PIN30_DIR) ? CART_PIN30_OUT : 1'bZ); //on reset state set ouput value to 4'hf
-	assign cart_tran_pin30_dir     = i_rst_apf | ~i_ena ? 1'b0 : CART_PIN30_DIR;                              //on reset state set pin dir to output
+	assign cart_tran_pin30         = i_rst_apf | ~analogizer_ena ? 1'bz : ((CART_PIN30_DIR) ? CART_PIN30_OUT : 1'bZ); //on reset state set ouput value to 4'hf
+	assign cart_tran_pin30_dir     = i_rst_apf | ~analogizer_ena ? 1'b0 : CART_PIN30_DIR;                              //on reset state set pin dir to output
 	assign CART_PIN30_IN           = cart_tran_pin30;
-	assign cart_pin30_pwroff_reset = i_rst_apf | ~i_ena ? 1'b0 : 1'b1;                                      //1'b1 (GPIO USE)
+	assign cart_pin30_pwroff_reset = i_rst_apf | ~analogizer_ena ? 1'b0 : 1'b1;                                      //1'b1 (GPIO USE)
 	//PIN31
-	assign cart_tran_pin31         = i_rst_apf | ~i_ena ? 1'bz : ((CART_PIN31_DIR) ? CART_PIN31_OUT : 1'bZ); //on reset state set ouput value to 4'hf
-	assign cart_tran_pin31_dir     = i_rst_apf | ~i_ena ? 1'b0 : CART_PIN31_DIR;                            //on reset state set pin dir to input
+	assign cart_tran_pin31         = i_rst_apf | ~analogizer_ena ? 1'bz : ((CART_PIN31_DIR) ? CART_PIN31_OUT : 1'bZ); //on reset state set ouput value to 4'hf
+	assign cart_tran_pin31_dir     = i_rst_apf | ~analogizer_ena ? 1'b0 : CART_PIN31_DIR;                            //on reset state set pin dir to input
 	assign CART_PIN31_IN           = cart_tran_pin31;
 endmodule
 

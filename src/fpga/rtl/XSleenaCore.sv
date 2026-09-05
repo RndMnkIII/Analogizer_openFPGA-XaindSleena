@@ -23,6 +23,7 @@
 `define RENDER_BACK1_LAYER
 `define RENDER_BACK2_LAYER
 `define CPU_OVERCLOCK_HACK
+//`define MCU_IMPLEMENTED
 
 module XSleenaCore (
 	input wire CLK,
@@ -30,6 +31,7 @@ module XSleenaCore (
 	input wire RSTn,
 
 	//inputs
+	input wire MCU_Enable,
 	input wire [7:0] DSW1,
 	input wire [7:0] DSW2,
 	input wire [7:0] PLAYER1,
@@ -224,8 +226,9 @@ module XSleenaCore (
 
 	logic W3A00n, W3A01n, W3A02n, W3A03n;
 	assign {W3A03n, W3A02n, W3A01n, W3A00n} = IOWDn;
-    logic [15:0] AB; //shared address bus
-    logic [7:0] DB_in, DB_out; //shared data bus
+    (* preserve, noprune *) logic [15:0] AB; //shared address bus
+    (* preserve, noprune *) logic [7:0] DB_in; //shared data bus
+	(* keep *) logic [7:0] DB_out; //shared data bus
 	logic RW;
 	logic WDn;
 
@@ -445,6 +448,7 @@ module XSleenaCore (
 		else if(RW && !BACK2SELn && !main_2xb)  DB_in = BACK2_Dout;
 		else if(RW && !OBJSELn   && !main_2xb)  DB_in = OBJ_Dout;
 		else if(RW && !PLSELn)                  DB_in = PLRAM_Dout;
+		else if(RW && MCU_Enable && !R3A04n  )  DB_in = MCU_Dout;
 		else if(RW && !IOn)                     DB_in = IO_Dout;
 		else                                    DB_in = 8'hFF;
 	end
@@ -538,7 +542,39 @@ module XSleenaCore (
 		.sync_rst(sync_rst)
     );
 
+	//--------------------------
+//`ifdef MCU_IMPLEMENTED
+	logic P5READYn;
+	logic P5ACCEPTn;
+	logic [7:0] MCU_Dout;
+	
+	XSleenaCore_MCU mcu(
+		.clk(CLK),
+		.main_2xb(main_2xb),
+		.enabled(MCU_Enable),
+		.RSTn(RSTn_synced[3]),
+		.W3A0En(W3A0En),
+		.R3A04n(R3A04n),
+		.R3A06n(R3A06n),
+		
+		.DB_in(DB_out),
+
+		.DB_out(MCU_Dout),
+		.P5ACCEPTn(P5ACCEPTn),
+		.P5READYn(P5READYn),
+
+		//ROM interface
+		.bram_wr(bram_wr),
+		.bram_data(bram_data),
+		.bram_addr(bram_addr[10:0]),
+		.bram_cs(bram_cs[5]),
+		.pause_rq(pause_rq)
+	);
+//`endif
+
+
 	//Schematics pages: 3B 
+
 	XSleenaCore_IO xs_io(
 		.clk(CLK),
 		.RSTn(RSTn_synced[3]),
@@ -558,9 +594,13 @@ module XSleenaCore (
 		.JAMMA_b(JAMMA_b),  //Unknow Conn J3X2 D3 1S953, R   1K, R   100, 0.01uF
 
 		//only for MCU protected versions
-		.P5READn(1'b1),
-		.P5ACCEPTn(1'b1),
-	
+	//`ifdef MCU_IMPLEMENTED
+		.P5ACCEPTn(MCU_Enable ? P5ACCEPTn : 1'b1),
+		.P5READYn(MCU_Enable ? P5READYn : 1'b1),
+	// `else
+	// 	.P5READYn(1'b1),
+	// 	.P5ACCEPTn(1'b1),
+	// `endif
 		//Outputs and register map
 		.R3A04n(R3A04n), //MCU data read
 		.R3A06n(R3A06n), //MCU reset

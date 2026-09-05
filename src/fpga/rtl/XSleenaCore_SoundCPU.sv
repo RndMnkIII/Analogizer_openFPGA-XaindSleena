@@ -207,7 +207,7 @@ module XSleenaCore_SoundCPU (
 
 	//--- OKI MSM2128-20RS 2Kx 8bits SRAM 200ns ---
 	logic [7:0] ic48_RAM_Dout;
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic48(
+	SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(11)) ic48(
 		.clk(clk),
 		.ADDR(SAB[10:0]),
 		.DATA(sndcpu_Dout),

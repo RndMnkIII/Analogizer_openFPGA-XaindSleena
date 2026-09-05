@@ -874,7 +874,7 @@ module XSleenaCore_cpuA_B (
 	// tri1 [7:0] ic1_D;
     // SRAM_async3 #(.ADDR_WIDTH(13), .DELAY(50), .DATA_HEX_FILE("rnd8K.bin_vmem.txt")) ic1 (.ADDR({ic16_Y[0],ic2_Y[3:0],ic3_Y[3:0],ic4_Y[3:0]}), .CE1n(1'b0), .CE2(1'b1), .OEn(1'b0), .WEn(ic16_Y[1]), .DATA(ic1_D));
 	
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(13), .DATA_HEX_FILE("rnd8K.bin_vmem.txt")) ic1(
+	SRAM_sync_noinit #(.DATA_WIDTH(8), .ADDR_WIDTH(13)) ic1(
 		.clk(clk),
 		.ADDR({ic16_Y[0],ic2_Y[3:0],ic3_Y[3:0],ic4_Y[3:0]}),
 		.DATA(SHARED_SRAM_Din),

@@ -51,7 +51,7 @@ logic ic16a; //OR gate
 	//--- SONY CXK5816P-10 2Kx8 100ns SRAM ---
 //CPU OVERCLOCK HACK
 // `ifdef CPU_OVERCLOCK_HACK
-	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic23(
+	SRAM_dual_sync #(.DATA_WIDTH(8), .ADDR_WIDTH(11)) ic23(
 		.clk0(clk),
 		.clk1(clk),
 		.ADDR0(AB[10:0]),
@@ -66,7 +66,7 @@ logic ic16a; //OR gate
 		.Q1(SRAM_Dout3)
 	);
 
-	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("greetings_vmem.txt")) ic23_greets(
+	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2Kbin_vmem.mem")) ic23_greets(
 		.clk0(clk),
 		.clk1(clk),
 		.ADDR0(AB[10:0]),

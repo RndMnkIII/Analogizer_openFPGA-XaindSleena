@@ -163,6 +163,9 @@ module xain_top (
 	);
 
 	wire rom_download = ioctl_download && (ioctl_index == ROM_INDEX);
+
+	logic [7:0]board_cfg;
+
 	rom_loader rom_loader(
 		.sys_clk(clk),
 		.ram_clk(sdr_clk),
@@ -184,7 +187,7 @@ module xain_top (
 		.bram_cs(bram_cs),
 		.bram_wr(bram_wr),
 
-		.board_cfg()
+		.board_cfg(board_cfg)
 	);
 
 	//////////////////////////     CORE     //////////////////////////
@@ -200,9 +203,10 @@ module xain_top (
 		.CLK(clk),
 		.SDR_CLK(sdr_clk),
 		.RSTn(~reset),
+		.MCU_Enable((board_cfg <= 8'h02)),
 		//Inputs
-		.DSW1(DSW1), // 80 Flip Screen On, 40 Cabinet Cocktail, 20 Allow continue Yes, 10 Demo Sounds On, 0C CoinB 1C/1C, 03 CoinA 1C/1C
-		.DSW2(DSW2), //
+		.DSW1(DSW1),
+		.DSW2(DSW2),
 		.PLAYER1(PLAYER1),
 		.PLAYER2(PLAYER2),
 		.SERVICE(SERVICE),
@@ -212,7 +216,7 @@ module xain_top (
 		.VIDEO_R(VIDEO_4R),
 		.VIDEO_G(VIDEO_4G),
 		.VIDEO_B(VIDEO_4B),
-		.PIX_CLK(), //not used
+		.PIX_CLK(),
 		.CE_PIXEL(CE_PIX),
 		.HBLANK(HBLANK_CORE), //NEGATIVE HBLANK
 		.VBLANK(VBLANK_CORE), //NEGATIVE VBLANK

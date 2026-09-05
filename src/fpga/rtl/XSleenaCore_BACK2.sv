@@ -129,7 +129,7 @@ module XSleenaCore_BACK2 (
 
 //CPU OVERCLOCK HACK
 // `ifdef CPU_OVERCLOCK_HACK
-	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic22(
+	SRAM_dual_sync #(.DATA_WIDTH(8), .ADDR_WIDTH(11)) ic22(
 		.clk0(clk),
 		.clk1(clk),
 		.ADDR0(AB[10:0]),
