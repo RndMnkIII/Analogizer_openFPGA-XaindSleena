@@ -69,20 +69,46 @@ The core can output RGBS, RGsB, YPbPr, Y/C and SVGA scandoubler (50% scanlines) 
 
 🔹 Tested with Sony PVM-9044D
 
-| :SNAC game controller:                          | Analogizer A/B config Switch | Status |
-| :---------------------------------------------- | :--------------------------- | :----: |
-| DB15                                            | A                            |  ✅    |
-| NES                                             | A                            |  ✅    |
-| SNES                                            | A                            |  ✅    |
-| PCENGINE                                        | A                            |  ✅    |
-| PCE MULTITAP                                    | A                            |  ✅    |
-| PSX DS/DS2 Digital DPAD                         | B                            |  ✅    |
-| PSX DS/DS2 Analog  DPAD                         | B                            |  ✅    |
-| PSX DS/DS2 Analog  DPAD                         | B                            |  ✅    |
-| PS/2 Keyboard & Mouse + NES One Player          | A                            |  ✅    |
-| PS/2 Keyboard & Mouse + SNES One Player         | A                            |  ✅    |
-| PS/2 Keyboard & Mouse + DB15 Two Players        | A                            |  ✅    |
-| PS/2 Keyboard & Mouse + No SNAC game controller | A                            |  ✅    |
+| :SNAC game controller:                           | Analogizer A/B config Switch | Status |
+| :----------------------------------------------- | :--------------------------- | :----: |
+|  DB15                                            | A                            |  ✅    |
+|  NES                                             | A                            |  ✅    |
+|  SNES                                            | A                            |  ✅    |
+|  PCENGINE                                        | A                            |  ✅    |
+|  PCE MULTITAP                                    | A                            |  ✅    |
+|  PSX DS/DS2 Digital DPAD                         | B                            |  ✅    |
+|  PSX DS/DS2 Analog  DPAD                         | B                            |  ✅    |
+|  PSX DS/DS2 Analog  DPAD                         | B                            |  ✅    |
+| *PS/2 Keyboard & Mouse + NES One Player          | A                            |  ✅    |
+| *PS/2 Keyboard & Mouse + SNES One Player         | A                            |  ✅    |
+| *PS/2 Keyboard & Mouse + DB15 Two Players        | A                            |  ✅    |
+|  PS/2 Keyboard & Mouse + No SNAC game controller | A                            |  ✅    |
+
+*With these modes you can used at the same time the keyboard and the enabled SNAC game controller.
+
+For PS/2 Keyboard the following keys are used:
+
+| :Game Control:    | Key         |
+| :---------------- | :---------- |
+| Player1  Up       | Up Arrow    |   
+| Player1  Down     | Down Arrow  |
+| Player1  Left     | Left Arrow  |
+| Player1  Right    | Right Arrow |
+| Player1  Button 1 | L-Ctrl      |
+| Player1  Button 2 | L-Alt       |
+| Player2  Up       | R           |
+| Player2  Down     | F           |
+| Player2  Left     | D           |
+| Player2  Right    | G           |
+| Player2  Button 1 | A           |
+| Player2  Button 2 | S           |
+| Coin1             | 5           |
+| Coin2             | 6           |
+| Start1            | 1           |
+| Start2            | 2           |
+| Pause             | P           |
+
+When Enabled in Pupdate or Analogizer Configurator (use latest versions).
 
 The Analogizer interface allow to mix game inputs from compatible SNAC gamepads supported by Analogizer (DB15 Neogeo, NES, SNES, PCEngine, PSX) with Analogue Pocket built-in controls or from Dock USB or wireless supported controllers (Analogue support).
 

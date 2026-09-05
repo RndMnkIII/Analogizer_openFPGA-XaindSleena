@@ -1006,10 +1006,10 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
     wire [15:0] kbd_p1_word = {
         kb_start1,        // 15  start
         kb_coin1,         // 14  select/coin  (PULSADO)
-        2'b00,            // 13:12  L3/R3
-        2'b00,            // 11:8   L2/R2/L1/R1, also map P2 start to L1 
-		  kb_coin2,
-		  1'b0, 
+        2'b00,            // 13:12  R3/L3
+        2'b00,            // 11:8   R2/L2/R1/L1, also map P2 start to L1 
+		kb_pause,
+		kb_coin2, 
         2'b00,            // 7:6    Y/X
         kb_p1_b2,         // 5   B -> salto
         kb_p1_b1,         // 4   A -> disparo
@@ -1019,7 +1019,7 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
         kb_p1_up          // 0
     };
     wire [15:0] kbd_p2_word = {
-        kb_start2, kb_coin2, 2'b00, 4'b0000, 2'b00,
+        kb_start2, kb_coin2, 2'b00, 2'b00, kb_pause, 3'b000,
         kb_p2_b2, kb_p2_b1, kb_p2_right, kb_p2_left, kb_p2_down, kb_p2_up
     };
 
@@ -1225,8 +1225,6 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
        .LHBL(~hblank_core),
        .hoffset(hoffset), //5bits signed
        .voffset(voffset), //5bits signed
-    //    .hoffset(5'd0), //5bits signed
-    //    .voffset(5'd0), //5bits signed
        .hs_out(HSync),
        .vs_out(VSync)
    );
@@ -1249,16 +1247,11 @@ xain_top #(.DBG_VIDEO(0)) xs_top(
        .vsync_in(VSync),
        .hblank(hblank_core),
        .vblank(vblank_core),
-    //    .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
-    //    .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
-    //    .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
-    //    .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
-    //    .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
-       .key_right(), //Detects if Start+Left was pressed
-       .key_left( ),//Detects if Start+Right was pressed
-       .key_down(),    //Detects if Start+Up was pressed
-       .key_up(),    //Detects if Start+Down was pressed
-       .key_A(),    //Detects if Start+A was pressed
+       .key_right(p1_controls[15] && !left_r && p1_controls[2]), //Detects if Start+Left was pressed
+       .key_left(p1_controls[15] && !right_r && p1_controls[3] ),//Detects if Start+Right was pressed
+       .key_down(p1_controls[15] && !up_r && p1_controls[0]),    //Detects if Start+Up was pressed
+       .key_up(p1_controls[15] && !down_r && p1_controls[1]),    //Detects if Start+Down was pressed
+       .key_A(p1_controls[15] && !btnA_r && p1_controls[4]),    //Detects if Start+A was pressed
        .R_out(RGB_out_R),
        .G_out(RGB_out_G),
        .B_out(RGB_out_B),

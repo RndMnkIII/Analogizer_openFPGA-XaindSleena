@@ -66,7 +66,7 @@ logic ic16a; //OR gate
 		.Q1(SRAM_Dout3)
 	);
 
-	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2Kbin_vmem.mem")) ic23_greets(
+	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("greetings_vmem.mem")) ic23_greets(
 		.clk0(clk),
 		.clk1(clk),
 		.ADDR0(AB[10:0]),
@@ -82,45 +82,6 @@ logic ic16a; //OR gate
 	);
 
 	assign SRAM_Dout2 = (show_kofi) ? SRAM_Dout1 : SRAM_Dout3;
-// `else
-// 	logic [3:0] ic25_Y;
-// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic25 
-// 	(.Enable_bar(1'b0),.Select(MAPSELn),
-// 	.A_2D({DHPOS[4], AB[3], DHPOS[3], AB[2], DHPOS[2], AB[1], DHPOS[1], AB[0]}),
-// 	.Y(ic25_Y));
-
-// 	logic [3:0] ic22_Y; //IC22???
-// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic22
-// 	(.Enable_bar(1'b0),.Select(MAPSELn),
-// 	.A_2D({DVPOS[5], AB[7], DVPOS[4], AB[6], DVPOS[3], AB[5], DHPOS[5], AB[4]}),
-// 	.Y(ic22_Y));
-
-// 	logic [3:0] ic39_Y;
-// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic39 
-// 	(.Enable_bar(1'b0),.Select(MAPSELn),
-// 	.A_2D({1'b1, WDn, HN[2], AB[10], DVPOS[7], AB[9], DVPOS[6], AB[8]}),
-// 	.Y(ic39_Y));
-
-// 	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic23(
-// 		.clk(clk),
-// 		.ADDR({ic39_Y[2:0],ic22_Y[3:0],ic25_Y[3:0]}),
-// 		.DATA(SRAM_Din),
-// 		.cen(1'b1), //active high
-// 		.we(~ic39_Y[3]), //active high
-// 		.Q(SRAM_Dout)
-//     );
-
-// 	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("greetings_vmem.txt")) ic23_greets(
-// 		.clk(clk),
-// 		.ADDR({ic39_Y[2:0],ic22_Y[3:0],ic25_Y[3:0]}),
-// 		.DATA(8'h00),
-// 		.cen(1'b1), //active high
-// 		.we(1'b0), //active high
-// 		.Q(SRAM_Dout1)
-//     );
-
-// 	assign SRAM_Dout2 = (show_kofi) ? SRAM_Dout1 : SRAM_Dout;
-// `endif
 
 //--- FPGA Synthesizable unidirectinal data bus MUX, replaces ic7 tri-state logic ---
 // This replaces TTL logic LS245 ICs: ic7
