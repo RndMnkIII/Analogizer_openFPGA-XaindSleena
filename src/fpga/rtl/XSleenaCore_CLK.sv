@@ -284,6 +284,8 @@ module XSleenaCore_CLK(
   assign ic15_nandB = ~(ic48_notF & ic33A_Q);
   assign VSYNC = ic15_nandB;
 
+  logic [7:0] DVPOS_raw;                  //Fix for Cabinet P2
+  assign DVPOS_raw = DVPOS ^ {8{P1_P2n}}; //Fix for Cabinet P2
 
   // **** hack (try to align VSYNC with HSYNC better) ***
   logic [5:0] DHPOS_r;
@@ -291,10 +293,12 @@ module XSleenaCore_CLK(
 
   always_ff @(posedge clk) begin
     DHPOS_r <= DHPOS;
-    if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd1 && ic42_Q[1]== 1'd1 && DVPOS == 8'd253) begin 
+    //if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd1 && ic42_Q[1]== 1'd1 && DVPOS == 8'd253) begin   //Fix for Cabinet P2
+    if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd1 && ic42_Q[1]== 1'd1 && DVPOS_raw == 8'd253) begin //Fix for Cabinet P2
       VSYNC2_r <= 1'b0;
     end
-    else if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd0 && ic42_Q[1]== 1'd1 && DVPOS == 8'd237) begin 
+    //else if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd0 && ic42_Q[1]== 1'd1 && DVPOS == 8'd237) begin   //Fix for Cabinet P2
+    else if(DHPOS_r == 6'd14 && DHPOS == 6'd15 && ic33A_Qn == 1'd0 && ic42_Q[1]== 1'd1 && DVPOS_raw == 8'd237) begin //Fix for Cabinet P2
       VSYNC2_r <= 1'b1;
     end
     else
@@ -310,13 +314,16 @@ module XSleenaCore_CLK(
   logic vcnt_reset = 1'b0; //reset VBLK counter
 
   always_ff @(posedge clk) begin
-    DVPOS_r <= DVPOS;
+    //DVPOS_r <= DVPOS;   //Fix for Cabinet P2
+    DVPOS_r <= DVPOS_raw; //Fix for Cabinet P2
     //IMS_r <= IMS;
 
-    if(DVPOS_r == 8'hFF && DVPOS == 8'h08) begin
+    //if(DVPOS_r == 8'hFF && DVPOS == 8'h08) begin    //Fix for Cabinet P2
+    if(DVPOS_r == 8'hFF && DVPOS_raw == 8'h08) begin  //Fix for Cabinet P2
       vcnt_reset <= 1'b1; 
     end
-    else if(DVPOS_r == 8'hFF && DVPOS == 8'hE8) begin
+    //else if(DVPOS_r == 8'hFF && DVPOS == 8'hE8) begin   //Fix for Cabinet P2
+    else if(DVPOS_r == 8'hFF && DVPOS_raw == 8'hE8) begin //Fix for Cabinet P2
       vcnt_reset <= 1'b0;
     end
     else begin
@@ -324,10 +331,12 @@ module XSleenaCore_CLK(
     end
 
 
-    if(DVPOS_r == 8'hF5 && DVPOS == 8'hF6 && vcnt_reset == 1'b1) begin 
+    //if(DVPOS_r == 8'hF5 && DVPOS == 8'hF6 && vcnt_reset == 1'b1) begin    //Fix for Cabinet P2
+    if(DVPOS_r == 8'hF5 && DVPOS_raw == 8'hF6 && vcnt_reset == 1'b1) begin  //Fix for Cabinet P2
       VBLKn2_r <= 1'b0;
     end
-    else if(DVPOS_r == 8'hFD && DVPOS == 8'hFE && vcnt_reset == 1'b0) begin 
+    //else if(DVPOS_r == 8'hFD && DVPOS == 8'hFE && vcnt_reset == 1'b0) begin   //Fix for Cabinet P2
+    else if(DVPOS_r == 8'hFD && DVPOS_raw == 8'hFE && vcnt_reset == 1'b0) begin //Fix for Cabinet P2
       VBLKn2_r <= 1'b1;
     end
     else

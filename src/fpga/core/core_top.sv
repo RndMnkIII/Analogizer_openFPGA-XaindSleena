@@ -846,6 +846,31 @@ module core_top
     //Synchronize vid_mode into clk_74a domain before usage
     synch_3 #(.WIDTH(1)) sync_vid_mode(vid_mode, vid_mode_s, clk_74a);
 
+
+    //===================================================
+    // CORE Reset (only xain_top) on DIP switches change.
+    //===================================================
+    wire [23:0] dipmod_raw = { mod_sw0, dip_sw1, dip_sw0 };
+
+    wire [23:0] dipmod_sync;
+    synch_3 #(.WIDTH(24)) sync_dipmod ( dipmod_raw, dipmod_sync, clk_sys );
+
+    reg  [23:0] dipmod_prev;
+    reg  [15:0] dip_rst_cnt = 16'd0; //~1.36 ms pulse 48MHz
+    always @(posedge clk_sys) begin
+        dipmod_prev <= dipmod_sync;
+        if (!pll_init_locked_s)              
+            dip_rst_cnt <= 16'd0;
+        else if (dipmod_sync != dipmod_prev)
+            dip_rst_cnt <= 16'hFFFF;
+        else if (dip_rst_cnt != 16'd0)
+            dip_rst_cnt <= dip_rst_cnt - 16'd1;
+    end
+    wire dip_change_reset = (dip_rst_cnt != 16'd0);
+    wire core_reset = reset | dip_change_reset;
+
+
+
     // Coin Pulse Generator
     logic coin1_p, coin2_p;
 
@@ -893,7 +918,7 @@ logic ce_pixel_core;
 xain_top #(.DBG_VIDEO(0)) xs_top(
     // Clocks & Reset
     .clk            (clk_sys),             // System clock
-    .reset          (reset),           // Reset
+    .reset          (core_reset),           // Reset
     .init(~pll_core_locked_s),            // SDRAM Initialization
 	 .pause((pause_core & ~reset) | reconfig_pause_s),
     .credits(toggle_credits_pause), // Pause for credits (R1 button)

@@ -6,6 +6,7 @@
 * [0.1.7 05/09/26] Added 68705-P5 MCU support using José Tejada @topapate [jt6805](https://github.com/jotego/jtcores/tree/master/modules/jt680x) core.
                    Added PS/2 keyboard support for P1/P2 players following MAME conventions. You can mix also with NES/SNES/DB15 game controls.
                    Fixed coin behaviour, now when a coin key press is detected a coin pulse of configurable duration is used instead.
+* [0.1.8 06/09/26] Fixed VBLANK generation in Cocktail cabinet mode for Player 2.
 
 ![Xaind Sleena](/doc/PORTADA.jpg)
 
@@ -148,7 +149,16 @@ Using another type of Y/C adapter not tested to be used with Analogizer will not
 
 ## ROM files:
 You are not allowed to distribute and/or copy any rom contents related to this game using the core distribution files. You must be a legit propietary
-of the hardware to use the ROM contents with this recreation. Use MRAtool to create the required `xsleenab.rom` or `xsleenaba.rom` files and place inside of `/Assets/xainsleena/common` folder.
+of the hardware to use the ROM contents with this recreation. Use MRAtool (check tools/mra-tool folder and the associated .mra files) to create the required rom files and place inside of `/Assets/xainsleena/common` folder:
+
+| :Name:                            | ROM Name      |
+| :-------------------------------- | :------------ |
+| Xaind Sleena (World)              | xsleena.rom   |
+| Xain'd Sleena (Japan)             | xsleenaj.rom  |
+| Solar-Warrior (US)                | solrwarr.rom  |
+| Xain'd Sleena (bootleg, set 1)    | xsleenab.rom  |
+| Xain'd Sleena (bootleg, bugfixed) | xsleenaba.rom |
+| Xain'd Sleena (bootleg, set 2)    | xsleenabb.rom |
 
 ## Acknowledgments
 * __José Tejada__ (__@topapate__) for his [jt6805](https://github.com/jotego/jtcores/tree/master/modules/jt680x) and [jt12](https://github.com/jotego/jt12) core and some advice about use it.
