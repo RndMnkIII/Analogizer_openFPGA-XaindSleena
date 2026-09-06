@@ -872,7 +872,7 @@ module core_top
 
 
     // Coin Pulse Generator
-    logic coin1_p, coin2_p;
+    logic coin1P, coin2P;
 
     coin_pulse #(
         .CLK_HZ  (48_000_000),
@@ -881,7 +881,7 @@ module core_top
         .clk  (clk_sys),
         .reset(reset),
         .key  (p1_controls[14]),
-        .coin (coin1_p)
+        .coin (coin1P)
     );
 
     coin_pulse #(
@@ -891,7 +891,7 @@ module core_top
         .clk  (clk_sys),
         .reset(reset),
         .key  (p2_controls[14]),
-        .coin (coin2_p)
+        .coin (coin2P)
     );
 
 //Xain'd Sleena uses only one set of game controls and 2 start buttons that are needed for play a continue
@@ -902,7 +902,7 @@ logic SERVICE;
 //               {2P,1P,1PSW2,1PSW1,1PD,1PU,1PL,1PR} 
 assign PLAYER1 = {~{p2_controls[15] | p1_controls[8]}, ~p1_controls[15],~p1_controls[5],~p1_controls[4],~p1_controls[1],~p1_controls[0],~p1_controls[2],~p1_controls[3]};
 //               {COIN2,COIN1,2PSW2,2PSW1,2PD,2PU,2PL,2PR}             
-assign PLAYER2 = {~coin2_p,~coin1_p,~p2_controls[5],~p2_controls[4],~p2_controls[1],~p2_controls[0],~p2_controls[2],~p2_controls[3]};
+assign PLAYER2 = {~coin2P,~coin1P,~p2_controls[5],~p2_controls[4],~p2_controls[1],~p2_controls[0],~p2_controls[2],~p2_controls[3]};
 assign SERVICE = 1'b1; //Not used in game
 
 //Xain_top interface

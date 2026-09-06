@@ -20,7 +20,7 @@ module string_to_ram_writer (
 
     state_t state;
 
-    localparam int STRING_MEM_SIZE = 369;
+    localparam int STRING_MEM_SIZE = 423;
     logic [7:0] string_data [0:STRING_MEM_SIZE-1];
     logic [8:0] string_offsets [0:39];
 
@@ -395,6 +395,64 @@ module string_to_ram_writer (
         string_data[366] = "H";
         string_data[367] = "z";
         string_data[368] = 8'h00;
+        // "PS/2 K+NES1P"
+        string_data[369] = "P";
+        string_data[370] = "S";
+        string_data[371] = "/";
+        string_data[372] = "2";
+        string_data[373] = " ";
+        string_data[374] = "K";
+        string_data[375] = "+";
+        string_data[376] = "N";
+        string_data[377] = "E";
+        string_data[378] = "S";
+        string_data[379] = "1";
+        string_data[380] = "P";
+        string_data[381] = 8'h00;
+        // "PS/2 K+SNES1P"
+        string_data[382] = "P";
+        string_data[383] = "S";
+        string_data[384] = "/";
+        string_data[385] = "2";
+        string_data[386] = " ";
+        string_data[387] = "K";
+        string_data[388] = "+";
+        string_data[389] = "S";
+        string_data[390] = "N";
+        string_data[391] = "E";
+        string_data[392] = "S";
+        string_data[393] = "1";
+        string_data[394] = "P";
+        string_data[395] = 8'h00;
+        // "PS/2 K+DB15 2P"
+        string_data[396] = "P";
+        string_data[397] = "S";
+        string_data[398] = "/";
+        string_data[399] = "2";
+        string_data[400] = " ";
+        string_data[401] = "K";
+        string_data[402] = "+";
+        string_data[403] = "D";
+        string_data[404] = "B";
+        string_data[405] = "1";
+        string_data[406] = "5";
+        string_data[407] = " ";
+        string_data[408] = "2";
+        string_data[409] = "P";
+        string_data[410] = 8'h00;
+        // "PS/2 K+None"
+        string_data[411] = "P";
+        string_data[412] = "S";
+        string_data[413] = "/";
+        string_data[414] = "2";
+        string_data[415] = " ";
+        string_data[416] = "K";
+        string_data[417] = "+";
+        string_data[418] = "N";
+        string_data[419] = "o";
+        string_data[420] = "n";
+        string_data[421] = "e";
+        string_data[422] = 8'h00;
     end
 
     // Offsets de inicio de cada cadena
@@ -427,10 +485,10 @@ module string_to_ram_writer (
         string_offsets[25] = 305;    // "DB15 Fast"
         string_offsets[26] = 337;    //  
         string_offsets[27] = 338;    // SNES A,B<->X,Y - SNES with remapped buttons 
-        string_offsets[28] = 337;    
-        string_offsets[29] = 337;    
-        string_offsets[30] = 337;    
-        string_offsets[31] = 337;    
+        string_offsets[28] = 369;    // "PS/2 K+NES1P"   (GC_PS2_NES)
+        string_offsets[29] = 382;    // "PS/2 K+SNES1P"  (GC_PS2_SNES)
+        string_offsets[30] = 396;    // "PS/2 K+DB15 2P" (GC_PS2_DB15)
+        string_offsets[31] = 411;    // "PS/2 K+None"    (GC_PS2_NONE)
         string_offsets[32] = 337;    
         string_offsets[33] = 315;    // "PSX Digital"
         string_offsets[34] = 337;    
