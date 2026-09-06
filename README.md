@@ -165,7 +165,7 @@ of the hardware to use the ROM contents with this recreation. Use MRAtool (check
 * __Martin Donlon__ (__@Wickerwaka__) for helping with the SDRAM controller and PLL reconfig, based on its fabulous Irem-M72 core (https://github.com/MiSTer-devel/Arcade-IremM72_MiSTer).
 * __marcusJordan__ for Pocket interface files from OpenGateWare project.
 
-* To all Ko-fi contributors for supporting this project:__
-LovePastrami__, __Zorro__, __Juan RA__, __Deu__, __@bdlou__, __Peter Bray__, __Nat__, __Funkycochise__, __David__, __Kevin Coleman__, __Denymetanol__, __Schermobianco__, __TontonKaloun__, __Wark91__, __Dan__, __Beaps__, __Todd Gill__, __John Stringer__, __Moi__, __Olivier Krumm__, __Raymond Bielun__, __peerlow__, __ManuelDopazoAtalaya__, __ALU_Card__.
+* To all Ko-fi contributors for supporting this project:
+__LovePastrami__, __Zorro__, __Juan RA__, __Deu__, __@bdlou__, __Peter Bray__, __Nat__, __Funkycochise__, __David__, __Kevin Coleman__, __Denymetanol__, __Schermobianco__, __TontonKaloun__, __Wark91__, __Dan__, __Beaps__, __Todd Gill__, __John Stringer__, __Moi__, __Olivier Krumm__, __Raymond Bielun__, __peerlow__, __ManuelDopazoAtalaya__, __ALU_Card__.
 
 * To all the people who with their comments have encouraged me to continue with this project.
